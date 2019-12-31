@@ -6,12 +6,21 @@ collecting new loan data for further training and experimenting by adding other 
 
 ## Installation
 
-Use the package manager [pip]
-
+Use the package manager [pip] Only compatable with python 2.7
 ```bash
 pip install fico-estimator
 ```
 
+## Dependencies
+```
+import sklearn
+import Beautiful
+import numpy
+import pandas
+```
+
+sklearn
+Beatiful
 ## Usage
 
 ```python
