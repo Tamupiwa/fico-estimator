@@ -14,7 +14,7 @@ pip install fico-estimator
 ## Dependencies
 ```
 import sklearn
-import Beautiful
+import BeautifulSoup
 import numpy
 import pandas
 ```
