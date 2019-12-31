@@ -1,0 +1,8322 @@
+# scrapes lending club loan marketkplace data and uses linear regressiion to
+#create a fico estimate coeeficient of using prime rates and the data
+#Note: most of the variance of the correct and predicted values is due to debt-to-assets ratio
+#.. which isnt used as an imput in the training
+
+
+import requests
+import os
+import csv
+from bs4 import BeautifulSoup
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+#iterates all the html documents in folder, scrapes each one and combines into one list record
+def main():
+    master_data = []
+    directory = '/Users/tamupiwadimairo/Desktop/LendingClubLoans/Html'
+    for file in os.listdir(directory):
+        with open(os.path.join(directory, file)) as page:
+            data = scrape(page)
+            master_data += data
+    return master_data
+
+##scrapes the lending club loan market place and scrapes the interest rate and fico score for each loan
+def scrape(page):
+  data = []
+  soup = BeautifulSoup(page, 'html.parser')
+  #get the div containing all the loans
+  loans = soup.find_all('tbody', class_='yui-dt-data')
+  loans = loans[0].find_all('tr')
+  for l in loans:
+      rate = l.find_all('strong', class_='rate')[0].contents[0]
+      fico = l.find_all('div', class_='ficoDisplay')[0].contents[0]
+      data.append({'lender': 'lending club', 'rate': rate, 'fico': fico, 'prime_rate':5.00})
+  return data
+
+#formats the rates from latin1 and transaltes fico range to mean
+def format(data):
+    new_data = []
+    for d in data:
+        new_d = {'lender': 'lending club', 'prime_rate': 5.00}
+        #remove latin1 encoding
+        new_rate = d['rate'].strip(u' \xa0')
+        #remove the percentage sign
+        new_rate = new_rate.strip('%')
+        new_rate = str(new_rate)
+        new_d['rate'] = float(new_rate)
+        #use the median of fico range
+        #convert unicode to string
+        range = str(d['fico'])
+        ranges = range.split('-')
+        #convert the ranges to an integer for calculations
+        ranges = [int(r) for r in ranges]
+        mean_fico = (ranges[1] + ranges[0]) / 2
+        new_d['fico'] = mean_fico
+        new_data.append(new_d)
+    return new_data
+
+#same as above but formats csv file
+def format_csv():
+    formated = []
+    with open('/Users/tamupiwadimairo/Desktop/LendingClubLoans/Csv/LendingClub2014.csv') as file:
+        reader = csv.reader(file, delimiter=',', quotechar='|')
+        for i, row in enuemrate(reader):
+            #skip the header row
+            if i == 0:
+                continue
+
+            rate = row[0]
+            #strip the percentage from rate
+            rate = rate.strip('%')
+            ranges = row[1]
+            #get the average of the the fico range
+            ranges = ranges.split('-')
+            ranges = [int(r) for r in ranges]
+            mean_fico = (ranges[1] + ranges[0]) / 2
+            formated.append({'rate': rate, 'fico': mean_fico})
+    #create new csv file with formated data
+    with open('/Users/tamupiwadimairo/Desktop/LendingClubLoans/Csv/formatedLendingClub2014.csv', mode='w') as file:
+        writer = csv.DictWriter(file, fieldnames = ['rate', 'fico'], delimiter = ',')
+        writer.writeheader()
+        for f in formated:
+            writer.writerow(f)
+
+#trains the linear regression model using scikit-learn
+#returns the bias and coeficient
+def train(data):
+    dataset = pd.read_csv('/Users/tamupiwadimairo/Desktop/AllLendingClubData.csv')
+    X = dataset.iloc[:,-1].values
+    y = dataset.iloc[:,1].values
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+    regressor.fit(X_train, y_train)
+    return regressor.intercept_, regressor.coef_
+
+#make predictions of FICO score using interest rates
+#and coefficient/bias from train function.
+def predict_fico(rate):
+    fico = (rate*-5.40286175) + 759.9175579736204
+    return fico
+#converts csv to dictionary
+
+#training data
+
+#2018 data. Prime rate was 5.00 (it has been subracted from rate to normalize data)
+[{
+    'rate': 11.91,
+    'fico': 667
+}, {
+    'rate': 2.84,
+    'fico': 687
+}, {
+    'rate': 20.34,
+    'fico': 692
+}, {
+    'rate': 10.02,
+    'fico': 692
+}, {
+    'rate': 2.46,
+    'fico': 772
+}, {
+    'rate': 17.35,
+    'fico': 667
+}, {
+    'rate': 11.14,
+    'fico': 672
+}, {
+    'rate': 1.11,
+    'fico': 662
+}, {
+    'rate': 2.21,
+    'fico': 707
+}, {
+    'rate': 1.11,
+    'fico': 787
+}, {
+    'rate': 1.11,
+    'fico': 762
+}, {
+    'rate': 3.46,
+    'fico': 672
+}, {
+    'rate': 11.14,
+    'fico': 717
+}, {
+    'rate': 1.67,
+    'fico': 762
+}, {
+    'rate': 11.14,
+    'fico': 712
+}, {
+    'rate': 12.97,
+    'fico': 682
+}, {
+    'rate': 11.91,
+    'fico': 712
+}, {
+    'rate': 2.84,
+    'fico': 687
+}, {
+    'rate': 2.84,
+    'fico': 722
+}, {
+    'rate': 2.21,
+    'fico': 732
+}, {
+    'rate': 19.37,
+    'fico': 687
+}, {
+    'rate': 18.4,
+    'fico': 677
+}, {
+    'rate': 2.21,
+    'fico': 817
+}, {
+    'rate': 3.46,
+    'fico': 707
+}, {
+    'rate': 2.84,
+    'fico': 697
+}, {
+    'rate': 18.4,
+    'fico': 662
+}, {
+    'rate': 3.46,
+    'fico': 717
+}, {
+    'rate': 11.14,
+    'fico': 672
+}, {
+    'rate': 2.84,
+    'fico': 707
+}, {
+    'rate': 1.67,
+    'fico': 707
+}, {
+    'rate': 11.14,
+    'fico': 727
+}, {
+    'rate': 2.21,
+    'fico': 747
+}, {
+    'rate': 9.47,
+    'fico': 672
+}, {
+    'rate': 8.56,
+    'fico': 687
+}, {
+    'rate': 11.14,
+    'fico': 667
+}, {
+    'rate': 11.91,
+    'fico': 747
+}, {
+    'rate': 9.47,
+    'fico': 662
+}, {
+    'rate': 11.91,
+    'fico': 692
+}, {
+    'rate': 11.91,
+    'fico': 667
+}, {
+    'rate': 19.37,
+    'fico': 687
+}, {
+    'rate': 18.4,
+    'fico': 682
+}, {
+    'rate': 3.46,
+    'fico': 722
+}, {
+    'rate': 11.14,
+    'fico': 662
+}, {
+    'rate': 3.46,
+    'fico': 722
+}, {
+    'rate': 9.47,
+    'fico': 702
+}, {
+    'rate': 2.84,
+    'fico': 747
+}, {
+    'rate': 2.84,
+    'fico': 692
+}, {
+    'rate': 3.46,
+    'fico': 732
+}, {
+    'rate': 9.47,
+    'fico': 697
+}, {
+    'rate': 11.91,
+    'fico': 662
+}, {
+    'rate': 10.02,
+    'fico': 662
+}, {
+    'rate': 11.14,
+    'fico': 707
+}, {
+    'rate': 1.11,
+    'fico': 727
+}, {
+    'rate': 11.14,
+    'fico': 662
+}, {
+    'rate': 22.27,
+    'fico': 677
+}, {
+    'rate': 10.02,
+    'fico': 772
+}, {
+    'rate': 10.02,
+    'fico': 692
+}, {
+    'rate': 3.46,
+    'fico': 772
+}, {
+    'rate': 19.37,
+    'fico': 707
+}, {
+    'rate': 10.02,
+    'fico': 682
+}, {
+    'rate': 2.21,
+    'fico': 742
+}, {
+    'rate': 17.35,
+    'fico': 692
+}, {
+    'rate': 11.14,
+    'fico': 667
+}, {
+    'rate': 1.11,
+    'fico': 712
+}, {
+    'rate': 13.94,
+    'fico': 682
+}, {
+    'rate': 11.91,
+    'fico': 672
+}, {
+    'rate': 2.21,
+    'fico': 762
+}, {
+    'rate': 14.92,
+    'fico': 677
+}, {
+    'rate': 2.84,
+    'fico': 717
+}, {
+    'rate': 1.67,
+    'fico': 722
+}, {
+    'rate': 1.11,
+    'fico': 702
+}, {
+    'rate': 1.11,
+    'fico': 767
+}, {
+    'rate': 13.94,
+    'fico': 687
+}, {
+    'rate': 1.11,
+    'fico': 717
+}, {
+    'rate': 11.91,
+    'fico': 712
+}, {
+    'rate': 2.84,
+    'fico': 797
+}, {
+    'rate': 2.21,
+    'fico': 692
+}, {
+    'rate': 2.84,
+    'fico': 722
+}, {
+    'rate': 11.91,
+    'fico': 672
+}, {
+    'rate': 19.37,
+    'fico': 697
+}, {
+    'rate': 19.37,
+    'fico': 682
+}, {
+    'rate': 21.31,
+    'fico': 672
+}, {
+    'rate': 11.14,
+    'fico': 677
+}, {
+    'rate': 3.46,
+    'fico': 662
+}, {
+    'rate': 22.27,
+    'fico': 702
+}, {
+    'rate': 3.46,
+    'fico': 697
+}, {
+    'rate': 3.46,
+    'fico': 712
+}, {
+    'rate': 9.47,
+    'fico': 692
+}, {
+    'rate': 10.02,
+    'fico': 662
+}, {
+    'rate': 1.11,
+    'fico': 707
+}, {
+    'rate': 1.11,
+    'fico': 737
+}, {
+    'rate': 2.84,
+    'fico': 697
+}, {
+    'rate': 1.67,
+    'fico': 712
+}, {
+    'rate': 9.47,
+    'fico': 682
+}, {
+    'rate': 10.02,
+    'fico': 697
+}, {
+    'rate': 3.46,
+    'fico': 677
+}, {
+    'rate': 8.56,
+    'fico': 677
+}, {
+    'rate': 1.11,
+    'fico': 797
+}, {
+    'rate': 9.47,
+    'fico': 692
+}, {
+    'rate': 19.37,
+    'fico': 692
+}, {
+    'rate': 10.02,
+    'fico': 662
+}, {
+    'rate': 2.21,
+    'fico': 692
+}, {
+    'rate': 1.67,
+    'fico': 697
+}, {
+    'rate': 2.84,
+    'fico': 802
+}, {
+    'rate': 1.11,
+    'fico': 687
+}, {
+    'rate': 1.67,
+    'fico': 677
+}, {
+    'rate': 22.27,
+    'fico': 712
+}, {
+    'rate': 2.21,
+    'fico': 752
+}, {
+    'rate': 3.46,
+    'fico': 777
+}, {
+    'rate': 11.91,
+    'fico': 682
+}, {
+    'rate': 3.46,
+    'fico': 707
+}, {
+    'rate': 2.21,
+    'fico': 702
+}, {
+    'rate': 12.97,
+    'fico': 687
+}, {
+    'rate': 18.4,
+    'fico': 667
+}, {
+    'rate': 1.67,
+    'fico': 767
+}, {
+    'rate': 5.08,
+    'fico': 792
+}, {
+    'rate': 9.47,
+    'fico': 677
+}, {
+    'rate': 2.84,
+    'fico': 682
+}, {
+    'rate': 12.97,
+    'fico': 662
+}, {
+    'rate': 11.14,
+    'fico': 672
+}, {
+    'rate': 6.55,
+    'fico': 752
+}, {
+    'rate': 14.92,
+    'fico': 692
+}, {
+    'rate': 21.31,
+    'fico': 682
+}, {
+    'rate': 11.14,
+    'fico': 692
+}, {
+    'rate': 13.94,
+    'fico': 677
+}, {
+    'rate': 8.56,
+    'fico': 712
+}, {
+    'rate': 17.35,
+    'fico': 667
+}, {
+    'rate': 10.02,
+    'fico': 687
+}, {
+    'rate': 11.14,
+    'fico': 667
+}, {
+    'rate': 3.46,
+    'fico': 717
+}, {
+    'rate': 9.47,
+    'fico': 662
+}, {
+    'rate': 21.31,
+    'fico': 672
+}, {
+    'rate': 11.91,
+    'fico': 677
+}, {
+    'rate': 19.37,
+    'fico': 697
+}, {
+    'rate': 3.46,
+    'fico': 712
+}, {
+    'rate': 1.67,
+    'fico': 787
+}, {
+    'rate': 8.56,
+    'fico': 687
+}, {
+    'rate': 2.84,
+    'fico': 717
+}, {
+    'rate': 1.67,
+    'fico': 742
+}, {
+    'rate': 19.37,
+    'fico': 672
+}, {
+    'rate': 9.47,
+    'fico': 707
+}, {
+    'rate': 3.46,
+    'fico': 662
+}, {
+    'rate': 1.67,
+    'fico': 762
+}, {
+    'rate': 1.11,
+    'fico': 737
+}, {
+    'rate': 11.14,
+    'fico': 722
+}, {
+    'rate': 15.89,
+    'fico': 677
+}, {
+    'rate': 2.21,
+    'fico': 737
+}, {
+    'rate': 10.02,
+    'fico': 737
+}, {
+    'rate': 21.31,
+    'fico': 677
+}, {
+    'rate': 8.56,
+    'fico': 707
+}, {
+    'rate': 2.21,
+    'fico': 747
+}, {
+    'rate': 2.84,
+    'fico': 722
+}, {
+    'rate': 8.56,
+    'fico': 687
+}, {
+    'rate': 1.67,
+    'fico': 792
+}, {
+    'rate': 11.91,
+    'fico': 667
+}, {
+    'rate': 15.89,
+    'fico': 697
+}, {
+    'rate': 11.14,
+    'fico': 697
+}, {
+    'rate': 8.56,
+    'fico': 677
+}, {
+    'rate': 1.11,
+    'fico': 677
+}, {
+    'rate': 11.14,
+    'fico': 697
+}, {
+    'rate': 20.34,
+    'fico': 717
+}, {
+    'rate': 12.97,
+    'fico': 672
+}, {
+    'rate': 8.56,
+    'fico': 697
+}, {
+    'rate': 11.14,
+    'fico': 712
+}, {
+    'rate': 2.84,
+    'fico': 712
+}, {
+    'rate': 1.11,
+    'fico': 787
+}, {
+    'rate': 11.91,
+    'fico': 702
+}, {
+    'rate': 2.21,
+    'fico': 812
+}, {
+    'rate': 3.46,
+    'fico': 732
+}, {
+    'rate': 1.67,
+    'fico': 682
+}, {
+    'rate': 11.14,
+    'fico': 682
+}, {
+    'rate': 10.02,
+    'fico': 672
+}, {
+    'rate': 8.56,
+    'fico': 677
+}, {
+    'rate': 1.67,
+    'fico': 787
+}, {
+    'rate': 3.46,
+    'fico': 747
+}, {
+    'rate': 14.92,
+    'fico': 687
+}, {
+    'rate': 3.46,
+    'fico': 697
+}, {
+    'rate': 10.02,
+    'fico': 682
+}, {
+    'rate': 17.35,
+    'fico': 692
+}, {
+    'rate': 10.02,
+    'fico': 672
+}, {
+    'rate': 17.35,
+    'fico': 677
+}, {
+    'rate': 8.56,
+    'fico': 672
+}, {
+    'rate': 8.56,
+    'fico': 677
+}, {
+    'rate': 11.14,
+    'fico': 717
+}, {
+    'rate': 11.14,
+    'fico': 667
+}, {
+    'rate': 8.56,
+    'fico': 672
+}, {
+    'rate': 10.02,
+    'fico': 692
+}, {
+    'rate': 17.35,
+    'fico': 677
+}, {
+    'rate': 2.21,
+    'fico': 767
+}, {
+    'rate': 8.56,
+    'fico': 697
+}, {
+    'rate': 12.97,
+    'fico': 662
+}, {
+    'rate': 9.47,
+    'fico': 687
+}, {
+    'rate': 8.56,
+    'fico': 677
+}, {
+    'rate': 1.11,
+    'fico': 722
+}, {
+    'rate': 14.92,
+    'fico': 682
+}, {
+    'rate': 9.47,
+    'fico': 667
+}, {
+    'rate': 11.91,
+    'fico': 662
+}, {
+    'rate': 1.11,
+    'fico': 697
+}, {
+    'rate': 2.84,
+    'fico': 782
+}, {
+    'rate': 11.91,
+    'fico': 722
+}, {
+    'rate': 1.67,
+    'fico': 702
+}, {
+    'rate': 1.67,
+    'fico': 732
+}, {
+    'rate': 8.56,
+    'fico': 712
+}, {
+    'rate': 18.4,
+    'fico': 682
+}, {
+    'rate': 9.47,
+    'fico': 692
+}, {
+    'rate': 3.46,
+    'fico': 722
+}, {
+    'rate': 1.67,
+    'fico': 682
+}, {
+    'rate': 2.21,
+    'fico': 717
+}, {
+    'rate': 5.47,
+    'fico': 722
+}, {
+    'rate': 1.11,
+    'fico': 692
+}, {
+    'rate': 13.94,
+    'fico': 667
+}, {
+    'rate': 9.47,
+    'fico': 672
+}, {
+    'rate': 11.14,
+    'fico': 692
+}, {
+    'rate': 2.21,
+    'fico': 682
+}, {
+    'rate': 22.27,
+    'fico': 712
+}, {
+    'rate': 12.97,
+    'fico': 692
+}, {
+    'rate': 19.37,
+    'fico': 742
+}, {
+    'rate': 3.46,
+    'fico': 682
+}, {
+    'rate': 10.02,
+    'fico': 707
+}, {
+    'rate': 10.02,
+    'fico': 667
+}, {
+    'rate': 13.94,
+    'fico': 697
+}, {
+    'rate': 1.11,
+    'fico': 722
+}, {
+    'rate': 1.67,
+    'fico': 707
+}, {
+    'rate': 1.67,
+    'fico': 737
+}, {
+    'rate': 11.14,
+    'fico': 667
+}, {
+    'rate': 3.46,
+    'fico': 662
+}, {
+    'rate': 1.11,
+    'fico': 682
+}, {
+    'rate': 9.47,
+    'fico': 692
+}, {
+    'rate': 2.21,
+    'fico': 722
+}, {
+    'rate': 18.4,
+    'fico': 662
+}, {
+    'rate': 11.91,
+    'fico': 707
+}, {
+    'rate': 11.91,
+    'fico': 687
+}, {
+    'rate': 2.21,
+    'fico': 777
+}, {
+    'rate': 5.47,
+    'fico': 682
+}, {
+    'rate': 3.46,
+    'fico': 662
+}, {
+    'rate': 1.11,
+    'fico': 767
+}, {
+    'rate': 2.84,
+    'fico': 727
+},
+#2014 data
+#prime rate was 3.25
+{
+    'rate': 5.65,
+    'fico': 737
+}, {
+    'rate': 8.87,
+    'fico': 717
+}, {
+    'rate': 18.73,
+    'fico': 692
+}, {
+    'rate': 6.74,
+    'fico': 697
+}, {
+    'rate': 8.46,
+    'fico': 697
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 13.89,
+    'fico': 707
+}, {
+    'rate': 11.08,
+    'fico': 687
+}, {
+    'rate': 3.66,
+    'fico': 717
+}, {
+    'rate': 16.47,
+    'fico': 672
+}, {
+    'rate': 11.02,
+    'fico': 667
+}, {
+    'rate': 18.42,
+    'fico': 672
+}, {
+    'rate': 5.65,
+    'fico': 737
+}, {
+    'rate': 4.37,
+    'fico': 727
+}, {
+    'rate': 12.4,
+    'fico': 732
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 7.12,
+    'fico': 742
+}, {
+    'rate': 6.51,
+    'fico': 732
+}, {
+    'rate': 6.74,
+    'fico': 762
+}, {
+    'rate': 18.73,
+    'fico': 667
+}, {
+    'rate': 15.8,
+    'fico': 697
+}, {
+    'rate': 14.74,
+    'fico': 667
+}, {
+    'rate': 8.74,
+    'fico': 697
+}, {
+    'rate': 13.57,
+    'fico': 672
+}, {
+    'rate': 4.65,
+    'fico': 707
+}, {
+    'rate': 11.17,
+    'fico': 677
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 5.34,
+    'fico': 767
+}, {
+    'rate': 4.65,
+    'fico': 762
+}, {
+    'rate': 17.75,
+    'fico': 687
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 13.24,
+    'fico': 722
+}, {
+    'rate': 12.55,
+    'fico': 687
+}, {
+    'rate': 10.3,
+    'fico': 677
+}, {
+    'rate': 4.65,
+    'fico': 782
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 4.37,
+    'fico': 832
+}, {
+    'rate': 5.65,
+    'fico': 717
+}, {
+    'rate': 9.24,
+    'fico': 662
+}, {
+    'rate': 14.02,
+    'fico': 672
+}, {
+    'rate': 7.89,
+    'fico': 722
+}, {
+    'rate': 15.88,
+    'fico': 662
+}, {
+    'rate': 18.49,
+    'fico': 662
+}, {
+    'rate': 14.02,
+    'fico': 677
+}, {
+    'rate': 8.61,
+    'fico': 717
+}, {
+    'rate': 7.13,
+    'fico': 712
+}, {
+    'rate': 20.66,
+    'fico': 672
+}, {
+    'rate': 4.24,
+    'fico': 787
+}, {
+    'rate': 8.87,
+    'fico': 707
+}, {
+    'rate': 7.13,
+    'fico': 752
+}, {
+    'rate': 14.19,
+    'fico': 662
+}, {
+    'rate': 14.02,
+    'fico': 702
+}, {
+    'rate': 18.24,
+    'fico': 667
+}, {
+    'rate': 14.55,
+    'fico': 682
+}, {
+    'rate': 7.89,
+    'fico': 727
+}, {
+    'rate': 9.73,
+    'fico': 672
+}, {
+    'rate': 6.74,
+    'fico': 717
+}, {
+    'rate': 11.08,
+    'fico': 692
+}, {
+    'rate': 5.34,
+    'fico': 757
+}, {
+    'rate': 8.24,
+    'fico': 707
+}, {
+    'rate': 6.91,
+    'fico': 717
+}, {
+    'rate': 11.08,
+    'fico': 682
+}, {
+    'rate': 12.55,
+    'fico': 667
+}, {
+    'rate': 6.66,
+    'fico': 732
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 13.04,
+    'fico': 687
+}, {
+    'rate': 15.0,
+    'fico': 707
+}, {
+    'rate': 10.84,
+    'fico': 697
+}, {
+    'rate': 15.78,
+    'fico': 697
+}, {
+    'rate': 5.65,
+    'fico': 717
+}, {
+    'rate': 8.58,
+    'fico': 737
+}, {
+    'rate': 14.02,
+    'fico': 667
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 9.87,
+    'fico': 672
+}, {
+    'rate': 3.51,
+    'fico': 792
+}, {
+    'rate': 7.58,
+    'fico': 702
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 9.81,
+    'fico': 712
+}, {
+    'rate': 4.37,
+    'fico': 762
+}, {
+    'rate': 14.52,
+    'fico': 682
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 13.24,
+    'fico': 697
+}, {
+    'rate': 7.87,
+    'fico': 727
+}, {
+    'rate': 5.65,
+    'fico': 812
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 4.26,
+    'fico': 752
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 13.04,
+    'fico': 667
+}, {
+    'rate': 4.37,
+    'fico': 767
+}, {
+    'rate': 12.56,
+    'fico': 672
+}, {
+    'rate': 11.1,
+    'fico': 677
+}, {
+    'rate': 11.71,
+    'fico': 677
+}, {
+    'rate': 3.37,
+    'fico': 752
+}, {
+    'rate': 2.74,
+    'fico': 767
+}, {
+    'rate': 7.89,
+    'fico': 737
+}, {
+    'rate': 16.47,
+    'fico': 667
+}, {
+    'rate': 15.5,
+    'fico': 672
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 4.65,
+    'fico': 707
+}, {
+    'rate': 3.37,
+    'fico': 742
+}, {
+    'rate': 18.23,
+    'fico': 692
+}, {
+    'rate': 7.4,
+    'fico': 722
+}, {
+    'rate': 4.37,
+    'fico': 767
+}, {
+    'rate': 2.78,
+    'fico': 717
+}, {
+    'rate': 9.86,
+    'fico': 712
+}, {
+    'rate': 10.84,
+    'fico': 692
+}, {
+    'rate': 10.84,
+    'fico': 712
+}, {
+    'rate': 4.65,
+    'fico': 777
+}, {
+    'rate': 2.78,
+    'fico': 817
+}, {
+    'rate': 2.92,
+    'fico': 747
+}, {
+    'rate': 10.74,
+    'fico': 662
+}, {
+    'rate': 12.55,
+    'fico': 692
+}, {
+    'rate': 7.74,
+    'fico': 712
+}, {
+    'rate': 6.91,
+    'fico': 727
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 2.78,
+    'fico': 767
+}, {
+    'rate': 4.41,
+    'fico': 737
+}, {
+    'rate': 15.8,
+    'fico': 702
+}, {
+    'rate': 5.65,
+    'fico': 737
+}, {
+    'rate': 7.89,
+    'fico': 692
+}, {
+    'rate': 5.24,
+    'fico': 762
+}, {
+    'rate': 11.96,
+    'fico': 682
+}, {
+    'rate': 16.47,
+    'fico': 697
+}, {
+    'rate': 11.4,
+    'fico': 677
+}, {
+    'rate': 11.08,
+    'fico': 702
+}, {
+    'rate': 7.49,
+    'fico': 697
+}, {
+    'rate': 12.45,
+    'fico': 677
+}, {
+    'rate': 6.51,
+    'fico': 732
+}, {
+    'rate': 13.07,
+    'fico': 667
+}, {
+    'rate': 10.82,
+    'fico': 677
+}, {
+    'rate': 10.84,
+    'fico': 682
+}, {
+    'rate': 6.66,
+    'fico': 727
+}, {
+    'rate': 13.15,
+    'fico': 662
+}, {
+    'rate': 3.37,
+    'fico': 807
+}, {
+    'rate': 2.54,
+    'fico': 747
+}, {
+    'rate': 6.63,
+    'fico': 742
+}, {
+    'rate': 12.74,
+    'fico': 702
+}, {
+    'rate': 6.51,
+    'fico': 722
+}, {
+    'rate': 20.03,
+    'fico': 662
+}, {
+    'rate': 6.38,
+    'fico': 737
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 7.89,
+    'fico': 707
+}, {
+    'rate': 9.86,
+    'fico': 727
+}, {
+    'rate': 14.02,
+    'fico': 662
+}, {
+    'rate': 4.26,
+    'fico': 737
+}, {
+    'rate': 10.86,
+    'fico': 727
+}, {
+    'rate': 11.08,
+    'fico': 707
+}, {
+    'rate': 18.24,
+    'fico': 672
+}, {
+    'rate': 5.65,
+    'fico': 722
+}, {
+    'rate': 7.5,
+    'fico': 717
+}, {
+    'rate': 13.44,
+    'fico': 707
+}, {
+    'rate': 10.73,
+    'fico': 712
+}, {
+    'rate': 7.66,
+    'fico': 692
+}, {
+    'rate': 8.23,
+    'fico': 707
+}, {
+    'rate': 10.24,
+    'fico': 687
+}, {
+    'rate': 15.0,
+    'fico': 662
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 3.67,
+    'fico': 747
+}, {
+    'rate': 4.65,
+    'fico': 742
+}, {
+    'rate': 11.08,
+    'fico': 667
+}, {
+    'rate': 6.91,
+    'fico': 697
+}, {
+    'rate': 13.04,
+    'fico': 682
+}, {
+    'rate': 5.65,
+    'fico': 702
+}, {
+    'rate': 9.28,
+    'fico': 717
+}, {
+    'rate': 12.06,
+    'fico': 712
+}, {
+    'rate': 12.02,
+    'fico': 722
+}, {
+    'rate': 11.98,
+    'fico': 667
+}, {
+    'rate': 7.89,
+    'fico': 702
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 5.65,
+    'fico': 727
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 18.03,
+    'fico': 682
+}, {
+    'rate': 7.13,
+    'fico': 752
+}, {
+    'rate': 4.65,
+    'fico': 802
+}, {
+    'rate': 7.89,
+    'fico': 742
+}, {
+    'rate': 4.37,
+    'fico': 732
+}, {
+    'rate': 7.89,
+    'fico': 722
+}, {
+    'rate': 11.08,
+    'fico': 702
+}, {
+    'rate': 4.65,
+    'fico': 697
+}, {
+    'rate': 9.44,
+    'fico': 697
+}, {
+    'rate': 6.91,
+    'fico': 702
+}, {
+    'rate': 15.8,
+    'fico': 672
+}, {
+    'rate': 2.78,
+    'fico': 747
+}, {
+    'rate': 13.64,
+    'fico': 677
+}, {
+    'rate': 5.34,
+    'fico': 742
+}, {
+    'rate': 15.24,
+    'fico': 662
+}, {
+    'rate': 9.44,
+    'fico': 732
+}, {
+    'rate': 9.86,
+    'fico': 747
+}, {
+    'rate': 12.55,
+    'fico': 702
+}, {
+    'rate': 15.8,
+    'fico': 677
+}, {
+    'rate': 16.22,
+    'fico': 667
+}, {
+    'rate': 5.65,
+    'fico': 732
+}, {
+    'rate': 2.92,
+    'fico': 747
+}, {
+    'rate': 7.34,
+    'fico': 757
+}, {
+    'rate': 8.23,
+    'fico': 792
+}, {
+    'rate': 4.63,
+    'fico': 727
+}, {
+    'rate': 10.84,
+    'fico': 672
+}, {
+    'rate': 12.55,
+    'fico': 667
+}, {
+    'rate': 11.58,
+    'fico': 687
+}, {
+    'rate': 4.75,
+    'fico': 752
+}, {
+    'rate': 6.75,
+    'fico': 717
+}, {
+    'rate': 10.73,
+    'fico': 702
+}, {
+    'rate': 5.69,
+    'fico': 752
+}, {
+    'rate': 4.65,
+    'fico': 732
+}, {
+    'rate': 4.65,
+    'fico': 757
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 9.86,
+    'fico': 692
+}, {
+    'rate': 4.65,
+    'fico': 737
+}, {
+    'rate': 5.65,
+    'fico': 702
+}, {
+    'rate': 10.84,
+    'fico': 692
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 9.86,
+    'fico': 732
+}, {
+    'rate': 6.91,
+    'fico': 707
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 7.89,
+    'fico': 762
+}, {
+    'rate': 7.4,
+    'fico': 727
+}, {
+    'rate': 12.06,
+    'fico': 687
+}, {
+    'rate': 8.87,
+    'fico': 712
+}, {
+    'rate': 19.22,
+    'fico': 667
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 15.42,
+    'fico': 662
+}, {
+    'rate': 2.78,
+    'fico': 752
+}, {
+    'rate': 8.87,
+    'fico': 712
+}, {
+    'rate': 4.26,
+    'fico': 732
+}, {
+    'rate': 21.64,
+    'fico': 667
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 16.66,
+    'fico': 662
+}, {
+    'rate': 11.08,
+    'fico': 672
+}, {
+    'rate': 17.52,
+    'fico': 667
+}, {
+    'rate': 10.84,
+    'fico': 667
+}, {
+    'rate': 9.59,
+    'fico': 752
+}, {
+    'rate': 9.86,
+    'fico': 722
+}, {
+    'rate': 10.42,
+    'fico': 682
+}, {
+    'rate': 6.91,
+    'fico': 687
+}, {
+    'rate': 3.74,
+    'fico': 762
+}, {
+    'rate': 15.24,
+    'fico': 702
+}, {
+    'rate': 13.04,
+    'fico': 697
+}, {
+    'rate': 4.49,
+    'fico': 752
+}, {
+    'rate': 13.04,
+    'fico': 682
+}, {
+    'rate': 3.37,
+    'fico': 752
+}, {
+    'rate': 5.34,
+    'fico': 792
+}, {
+    'rate': 7.5,
+    'fico': 742
+}, {
+    'rate': 5.24,
+    'fico': 717
+}, {
+    'rate': 8.87,
+    'fico': 712
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 5.69,
+    'fico': 762
+}, {
+    'rate': 4.24,
+    'fico': 732
+}, {
+    'rate': 7.78,
+    'fico': 687
+}, {
+    'rate': 6.91,
+    'fico': 707
+}, {
+    'rate': 13.64,
+    'fico': 672
+}, {
+    'rate': 11.1,
+    'fico': 677
+}, {
+    'rate': 10.84,
+    'fico': 672
+}, {
+    'rate': 12.32,
+    'fico': 702
+}, {
+    'rate': 11.34,
+    'fico': 667
+}, {
+    'rate': 13.04,
+    'fico': 667
+}, {
+    'rate': 2.74,
+    'fico': 752
+}, {
+    'rate': 11.4,
+    'fico': 722
+}, {
+    'rate': 4.65,
+    'fico': 732
+}, {
+    'rate': 7.74,
+    'fico': 802
+}, {
+    'rate': 6.37,
+    'fico': 807
+}, {
+    'rate': 17.25,
+    'fico': 682
+}, {
+    'rate': 4.37,
+    'fico': 732
+}, {
+    'rate': 3.66,
+    'fico': 727
+}, {
+    'rate': 14.52,
+    'fico': 697
+}, {
+    'rate': 12.06,
+    'fico': 692
+}, {
+    'rate': 6.91,
+    'fico': 697
+}, {
+    'rate': 7.11,
+    'fico': 717
+}, {
+    'rate': 14.02,
+    'fico': 667
+}, {
+    'rate': 12.02,
+    'fico': 672
+}, {
+    'rate': 14.24,
+    'fico': 667
+}, {
+    'rate': 14.52,
+    'fico': 687
+}, {
+    'rate': 8.29,
+    'fico': 672
+}, {
+    'rate': 9.44,
+    'fico': 717
+}, {
+    'rate': 7.49,
+    'fico': 717
+}, {
+    'rate': 10.74,
+    'fico': 722
+}, {
+    'rate': 12.55,
+    'fico': 667
+}, {
+    'rate': 3.37,
+    'fico': 782
+}, {
+    'rate': 13.24,
+    'fico': 707
+}, {
+    'rate': 9.81,
+    'fico': 692
+}, {
+    'rate': 13.04,
+    'fico': 672
+}, {
+    'rate': 14.24,
+    'fico': 707
+}, {
+    'rate': 15.5,
+    'fico': 677
+}, {
+    'rate': 8.46,
+    'fico': 687
+}, {
+    'rate': 14.02,
+    'fico': 677
+}, {
+    'rate': 7.11,
+    'fico': 732
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 12.55,
+    'fico': 672
+}, {
+    'rate': 2.78,
+    'fico': 752
+}, {
+    'rate': 8.46,
+    'fico': 747
+}, {
+    'rate': 10.87,
+    'fico': 657
+}, {
+    'rate': 16.74,
+    'fico': 692
+}, {
+    'rate': 10.84,
+    'fico': 692
+}, {
+    'rate': 3.37,
+    'fico': 777
+}, {
+    'rate': 5.65,
+    'fico': 752
+}, {
+    'rate': 9.67,
+    'fico': 667
+}, {
+    'rate': 15.42,
+    'fico': 662
+}, {
+    'rate': 6.63,
+    'fico': 732
+}, {
+    'rate': 3.37,
+    'fico': 802
+}, {
+    'rate': 7.13,
+    'fico': 757
+}, {
+    'rate': 4.65,
+    'fico': 792
+}, {
+    'rate': 11.08,
+    'fico': 687
+}, {
+    'rate': 6.66,
+    'fico': 752
+}, {
+    'rate': 15.8,
+    'fico': 697
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 4.65,
+    'fico': 772
+}, {
+    'rate': 4.65,
+    'fico': 707
+}, {
+    'rate': 4.65,
+    'fico': 797
+}, {
+    'rate': 9.74,
+    'fico': 717
+}, {
+    'rate': 7.89,
+    'fico': 687
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 11.02,
+    'fico': 707
+}, {
+    'rate': 17.24,
+    'fico': 662
+}, {
+    'rate': 11.08,
+    'fico': 742
+}, {
+    'rate': 8.46,
+    'fico': 682
+}, {
+    'rate': 6.66,
+    'fico': 732
+}, {
+    'rate': 2.78,
+    'fico': 787
+}, {
+    'rate': 8.74,
+    'fico': 757
+}, {
+    'rate': 16.47,
+    'fico': 667
+}, {
+    'rate': 12.71,
+    'fico': 667
+}, {
+    'rate': 17.24,
+    'fico': 662
+}, {
+    'rate': 10.84,
+    'fico': 687
+}, {
+    'rate': 7.21,
+    'fico': 682
+}, {
+    'rate': 16.47,
+    'fico': 702
+}, {
+    'rate': 10.97,
+    'fico': 672
+}, {
+    'rate': 2.54,
+    'fico': 732
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 12.06,
+    'fico': 712
+}, {
+    'rate': 8.87,
+    'fico': 712
+}, {
+    'rate': 7.13,
+    'fico': 757
+}, {
+    'rate': 2.54,
+    'fico': 782
+}, {
+    'rate': 8.24,
+    'fico': 717
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 15.8,
+    'fico': 687
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 19.22,
+    'fico': 662
+}, {
+    'rate': 2.17,
+    'fico': 787
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 8.87,
+    'fico': 722
+}, {
+    'rate': 12.06,
+    'fico': 712
+}, {
+    'rate': 19.53,
+    'fico': 677
+}, {
+    'rate': 7.86,
+    'fico': 692
+}, {
+    'rate': 13.79,
+    'fico': 687
+}, {
+    'rate': 9.36,
+    'fico': 677
+}, {
+    'rate': 12.55,
+    'fico': 677
+}, {
+    'rate': 7.74,
+    'fico': 692
+}, {
+    'rate': 15.0,
+    'fico': 692
+}, {
+    'rate': 2.74,
+    'fico': 792
+}, {
+    'rate': 6.37,
+    'fico': 712
+}, {
+    'rate': 8.87,
+    'fico': 677
+}, {
+    'rate': 10.24,
+    'fico': 762
+}, {
+    'rate': 11.4,
+    'fico': 672
+}, {
+    'rate': 6.91,
+    'fico': 717
+}, {
+    'rate': 4.65,
+    'fico': 742
+}, {
+    'rate': 14.52,
+    'fico': 677
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 9.81,
+    'fico': 712
+}, {
+    'rate': 13.24,
+    'fico': 712
+}, {
+    'rate': 14.92,
+    'fico': 687
+}, {
+    'rate': 19.53,
+    'fico': 692
+}, {
+    'rate': 7.34,
+    'fico': 737
+}, {
+    'rate': 15.8,
+    'fico': 662
+}, {
+    'rate': 4.18,
+    'fico': 802
+}, {
+    'rate': 12.06,
+    'fico': 712
+}, {
+    'rate': 3.37,
+    'fico': 742
+}, {
+    'rate': 9.86,
+    'fico': 737
+}, {
+    'rate': 10.84,
+    'fico': 692
+}, {
+    'rate': 14.52,
+    'fico': 662
+}, {
+    'rate': 2.17,
+    'fico': 772
+}, {
+    'rate': 7.5,
+    'fico': 757
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 19.7,
+    'fico': 667
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 9.86,
+    'fico': 707
+}, {
+    'rate': 2.78,
+    'fico': 792
+}, {
+    'rate': 13.52,
+    'fico': 687
+}, {
+    'rate': 13.45,
+    'fico': 692
+}, {
+    'rate': 11.66,
+    'fico': 717
+}, {
+    'rate': 16.17,
+    'fico': 707
+}, {
+    'rate': 10.86,
+    'fico': 702
+}, {
+    'rate': 10.74,
+    'fico': 727
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 5.65,
+    'fico': 722
+}, {
+    'rate': 9.86,
+    'fico': 692
+}, {
+    'rate': 7.0,
+    'fico': 722
+}, {
+    'rate': 10.84,
+    'fico': 687
+}, {
+    'rate': 12.06,
+    'fico': 667
+}, {
+    'rate': 7.4,
+    'fico': 702
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 15.5,
+    'fico': 672
+}, {
+    'rate': 16.47,
+    'fico': 682
+}, {
+    'rate': 11.08,
+    'fico': 672
+}, {
+    'rate': 11.08,
+    'fico': 692
+}, {
+    'rate': 5.65,
+    'fico': 702
+}, {
+    'rate': 3.37,
+    'fico': 782
+}, {
+    'rate': 8.46,
+    'fico': 777
+}, {
+    'rate': 4.04,
+    'fico': 737
+}, {
+    'rate': 9.04,
+    'fico': 687
+}, {
+    'rate': 2.78,
+    'fico': 757
+}, {
+    'rate': 5.65,
+    'fico': 717
+}, {
+    'rate': 4.65,
+    'fico': 732
+}, {
+    'rate': 13.04,
+    'fico': 682
+}, {
+    'rate': 19.22,
+    'fico': 672
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 3.37,
+    'fico': 752
+}, {
+    'rate': 8.87,
+    'fico': 707
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 7.12,
+    'fico': 677
+}, {
+    'rate': 12.55,
+    'fico': 667
+}, {
+    'rate': 12.71,
+    'fico': 697
+}, {
+    'rate': 19.22,
+    'fico': 692
+}, {
+    'rate': 12.56,
+    'fico': 702
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 6.91,
+    'fico': 702
+}, {
+    'rate': 3.66,
+    'fico': 732
+}, {
+    'rate': 5.65,
+    'fico': 717
+}, {
+    'rate': 12.55,
+    'fico': 692
+}, {
+    'rate': 11.4,
+    'fico': 677
+}, {
+    'rate': 10.84,
+    'fico': 727
+}, {
+    'rate': 4.04,
+    'fico': 732
+}, {
+    'rate': 12.55,
+    'fico': 737
+}, {
+    'rate': 11.08,
+    'fico': 687
+}, {
+    'rate': 9.86,
+    'fico': 672
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 7.89,
+    'fico': 717
+}, {
+    'rate': 6.66,
+    'fico': 707
+}, {
+    'rate': 13.24,
+    'fico': 692
+}, {
+    'rate': 9.43,
+    'fico': 697
+}, {
+    'rate': 4.65,
+    'fico': 717
+}, {
+    'rate': 13.04,
+    'fico': 712
+}, {
+    'rate': 7.13,
+    'fico': 737
+}, {
+    'rate': 2.54,
+    'fico': 762
+}, {
+    'rate': 8.87,
+    'fico': 717
+}, {
+    'rate': 10.6,
+    'fico': 707
+}, {
+    'rate': 6.91,
+    'fico': 727
+}, {
+    'rate': 6.75,
+    'fico': 732
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 15.5,
+    'fico': 697
+}, {
+    'rate': 15.8,
+    'fico': 662
+}, {
+    'rate': 3.66,
+    'fico': 762
+}, {
+    'rate': 11.4,
+    'fico': 682
+}, {
+    'rate': 6.74,
+    'fico': 732
+}, {
+    'rate': 6.91,
+    'fico': 732
+}, {
+    'rate': 9.17,
+    'fico': 707
+}, {
+    'rate': 6.91,
+    'fico': 722
+}, {
+    'rate': 4.65,
+    'fico': 707
+}, {
+    'rate': 10.84,
+    'fico': 687
+}, {
+    'rate': 17.75,
+    'fico': 672
+}, {
+    'rate': 6.66,
+    'fico': 732
+}, {
+    'rate': 4.37,
+    'fico': 732
+}, {
+    'rate': 12.06,
+    'fico': 687
+}, {
+    'rate': 11.96,
+    'fico': 702
+}, {
+    'rate': 10.86,
+    'fico': 677
+}, {
+    'rate': 12.06,
+    'fico': 667
+}, {
+    'rate': 9.62,
+    'fico': 722
+}, {
+    'rate': 11.08,
+    'fico': 727
+}, {
+    'rate': 15.24,
+    'fico': 702
+}, {
+    'rate': 9.86,
+    'fico': 672
+}, {
+    'rate': 6.38,
+    'fico': 782
+}, {
+    'rate': 14.02,
+    'fico': 727
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 15.8,
+    'fico': 662
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 7.74,
+    'fico': 732
+}, {
+    'rate': 11.08,
+    'fico': 682
+}, {
+    'rate': 13.38,
+    'fico': 682
+}, {
+    'rate': 9.86,
+    'fico': 742
+}, {
+    'rate': 19.7,
+    'fico': 672
+}, {
+    'rate': 6.51,
+    'fico': 782
+}, {
+    'rate': 7.13,
+    'fico': 732
+}, {
+    'rate': 10.42,
+    'fico': 692
+}, {
+    'rate': 12.06,
+    'fico': 697
+}, {
+    'rate': 20.03,
+    'fico': 662
+}, {
+    'rate': 15.0,
+    'fico': 667
+}, {
+    'rate': 14.24,
+    'fico': 697
+}, {
+    'rate': 8.74,
+    'fico': 682
+}, {
+    'rate': 8.46,
+    'fico': 687
+}, {
+    'rate': 15.8,
+    'fico': 692
+}, {
+    'rate': 6.91,
+    'fico': 677
+}, {
+    'rate': 10.84,
+    'fico': 667
+}, {
+    'rate': 8.46,
+    'fico': 722
+}, {
+    'rate': 16.47,
+    'fico': 667
+}, {
+    'rate': 7.87,
+    'fico': 717
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 11.59,
+    'fico': 707
+}, {
+    'rate': 8.72,
+    'fico': 707
+}, {
+    'rate': 14.18,
+    'fico': 677
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 16.47,
+    'fico': 677
+}, {
+    'rate': 9.86,
+    'fico': 692
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 12.75,
+    'fico': 727
+}, {
+    'rate': 8.96,
+    'fico': 702
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 12.02,
+    'fico': 682
+}, {
+    'rate': 14.02,
+    'fico': 672
+}, {
+    'rate': 8.87,
+    'fico': 702
+}, {
+    'rate': 14.52,
+    'fico': 682
+}, {
+    'rate': 10.24,
+    'fico': 692
+}, {
+    'rate': 13.07,
+    'fico': 687
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 6.74,
+    'fico': 747
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 9.91,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 737
+}, {
+    'rate': 4.65,
+    'fico': 732
+}, {
+    'rate': 6.91,
+    'fico': 692
+}, {
+    'rate': 8.96,
+    'fico': 727
+}, {
+    'rate': 7.89,
+    'fico': 762
+}, {
+    'rate': 7.49,
+    'fico': 747
+}, {
+    'rate': 7.0,
+    'fico': 777
+}, {
+    'rate': 8.11,
+    'fico': 712
+}, {
+    'rate': 3.89,
+    'fico': 762
+}, {
+    'rate': 8.87,
+    'fico': 717
+}, {
+    'rate': 6.75,
+    'fico': 717
+}, {
+    'rate': 2.78,
+    'fico': 752
+}, {
+    'rate': 9.04,
+    'fico': 702
+}, {
+    'rate': 3.51,
+    'fico': 757
+}, {
+    'rate': 11.59,
+    'fico': 672
+}, {
+    'rate': 12.71,
+    'fico': 667
+}, {
+    'rate': 2.78,
+    'fico': 752
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 12.55,
+    'fico': 677
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 7.89,
+    'fico': 672
+}, {
+    'rate': 6.07,
+    'fico': 777
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 14.52,
+    'fico': 662
+}, {
+    'rate': 19.22,
+    'fico': 667
+}, {
+    'rate': 13.04,
+    'fico': 677
+}, {
+    'rate': 11.96,
+    'fico': 682
+}, {
+    'rate': 5.65,
+    'fico': 682
+}, {
+    'rate': 9.81,
+    'fico': 672
+}, {
+    'rate': 4.24,
+    'fico': 732
+}, {
+    'rate': 13.04,
+    'fico': 707
+}, {
+    'rate': 4.37,
+    'fico': 742
+}, {
+    'rate': 10.74,
+    'fico': 687
+}, {
+    'rate': 14.52,
+    'fico': 672
+}, {
+    'rate': 7.5,
+    'fico': 722
+}, {
+    'rate': 15.37,
+    'fico': 687
+}, {
+    'rate': 9.44,
+    'fico': 677
+}, {
+    'rate': 11.4,
+    'fico': 727
+}, {
+    'rate': 3.37,
+    'fico': 742
+}, {
+    'rate': 7.89,
+    'fico': 717
+}, {
+    'rate': 17.75,
+    'fico': 672
+}, {
+    'rate': 4.41,
+    'fico': 702
+}, {
+    'rate': 10.93,
+    'fico': 687
+}, {
+    'rate': 7.89,
+    'fico': 687
+}, {
+    'rate': 15.8,
+    'fico': 662
+}, {
+    'rate': 10.73,
+    'fico': 722
+}, {
+    'rate': 10.84,
+    'fico': 672
+}, {
+    'rate': 11.4,
+    'fico': 712
+}, {
+    'rate': 8.64,
+    'fico': 742
+}, {
+    'rate': 13.89,
+    'fico': 682
+}, {
+    'rate': 6.51,
+    'fico': 742
+}, {
+    'rate': 19.22,
+    'fico': 667
+}, {
+    'rate': 4.65,
+    'fico': 712
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 14.02,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 697
+}, {
+    'rate': 5.69,
+    'fico': 722
+}, {
+    'rate': 2.92,
+    'fico': 772
+}, {
+    'rate': 6.91,
+    'fico': 707
+}, {
+    'rate': 15.24,
+    'fico': 672
+}, {
+    'rate': 18.86,
+    'fico': 692
+}, {
+    'rate': 8.24,
+    'fico': 732
+}, {
+    'rate': 9.74,
+    'fico': 687
+}, {
+    'rate': 10.84,
+    'fico': 692
+}, {
+    'rate': 7.34,
+    'fico': 697
+}, {
+    'rate': 4.04,
+    'fico': 727
+}, {
+    'rate': 8.46,
+    'fico': 732
+}, {
+    'rate': 13.52,
+    'fico': 677
+}, {
+    'rate': 16.47,
+    'fico': 682
+}, {
+    'rate': 4.37,
+    'fico': 722
+}, {
+    'rate': 12.06,
+    'fico': 692
+}, {
+    'rate': 12.06,
+    'fico': 667
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 13.52,
+    'fico': 662
+}, {
+    'rate': 12.56,
+    'fico': 682
+}, {
+    'rate': 10.24,
+    'fico': 687
+}, {
+    'rate': 6.51,
+    'fico': 697
+}, {
+    'rate': 15.5,
+    'fico': 692
+}, {
+    'rate': 4.26,
+    'fico': 737
+}, {
+    'rate': 6.91,
+    'fico': 762
+}, {
+    'rate': 3.74,
+    'fico': 752
+}, {
+    'rate': 4.26,
+    'fico': 792
+}, {
+    'rate': 8.93,
+    'fico': 742
+}, {
+    'rate': 7.89,
+    'fico': 722
+}, {
+    'rate': 12.71,
+    'fico': 662
+}, {
+    'rate': 6.91,
+    'fico': 702
+}, {
+    'rate': 11.08,
+    'fico': 702
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 7.74,
+    'fico': 702
+}, {
+    'rate': 11.98,
+    'fico': 672
+}, {
+    'rate': 4.63,
+    'fico': 782
+}, {
+    'rate': 12.06,
+    'fico': 667
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 7.49,
+    'fico': 707
+}, {
+    'rate': 17.28,
+    'fico': 677
+}, {
+    'rate': 12.82,
+    'fico': 687
+}, {
+    'rate': 9.28,
+    'fico': 687
+}, {
+    'rate': 15.8,
+    'fico': 692
+}, {
+    'rate': 4.65,
+    'fico': 802
+}, {
+    'rate': 13.04,
+    'fico': 727
+}, {
+    'rate': 9.86,
+    'fico': 692
+}, {
+    'rate': 5.65,
+    'fico': 752
+}, {
+    'rate': 7.89,
+    'fico': 702
+}, {
+    'rate': 2.17,
+    'fico': 792
+}, {
+    'rate': 7.4,
+    'fico': 687
+}, {
+    'rate': 7.4,
+    'fico': 722
+}, {
+    'rate': 14.74,
+    'fico': 677
+}, {
+    'rate': 9.17,
+    'fico': 707
+}, {
+    'rate': 15.5,
+    'fico': 682
+}, {
+    'rate': 3.37,
+    'fico': 737
+}, {
+    'rate': 9.28,
+    'fico': 707
+}, {
+    'rate': 10.73,
+    'fico': 677
+}, {
+    'rate': 2.78,
+    'fico': 742
+}, {
+    'rate': 4.26,
+    'fico': 757
+}, {
+    'rate': 7.87,
+    'fico': 707
+}, {
+    'rate': 6.51,
+    'fico': 712
+}, {
+    'rate': 8.87,
+    'fico': 702
+}, {
+    'rate': 6.38,
+    'fico': 787
+}, {
+    'rate': 13.04,
+    'fico': 692
+}, {
+    'rate': 9.17,
+    'fico': 672
+}, {
+    'rate': 11.08,
+    'fico': 712
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 7.49,
+    'fico': 702
+}, {
+    'rate': 12.06,
+    'fico': 697
+}, {
+    'rate': 6.91,
+    'fico': 722
+}, {
+    'rate': 10.1,
+    'fico': 712
+}, {
+    'rate': 14.02,
+    'fico': 697
+}, {
+    'rate': 8.58,
+    'fico': 717
+}, {
+    'rate': 15.0,
+    'fico': 727
+}, {
+    'rate': 4.26,
+    'fico': 737
+}, {
+    'rate': 10.42,
+    'fico': 712
+}, {
+    'rate': 7.12,
+    'fico': 677
+}, {
+    'rate': 8.46,
+    'fico': 677
+}, {
+    'rate': 8.87,
+    'fico': 712
+}, {
+    'rate': 5.38,
+    'fico': 732
+}, {
+    'rate': 4.65,
+    'fico': 732
+}, {
+    'rate': 3.37,
+    'fico': 722
+}, {
+    'rate': 11.45,
+    'fico': 642
+}, {
+    'rate': 6.75,
+    'fico': 702
+}, {
+    'rate': 10.84,
+    'fico': 682
+}, {
+    'rate': 3.66,
+    'fico': 737
+}, {
+    'rate': 10.74,
+    'fico': 722
+}, {
+    'rate': 9.86,
+    'fico': 677
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 4.41,
+    'fico': 727
+}, {
+    'rate': 12.03,
+    'fico': 722
+}, {
+    'rate': 8.87,
+    'fico': 732
+}, {
+    'rate': 5.65,
+    'fico': 712
+}, {
+    'rate': 11.08,
+    'fico': 762
+}, {
+    'rate': 3.29,
+    'fico': 797
+}, {
+    'rate': 13.52,
+    'fico': 662
+}, {
+    'rate': 15.78,
+    'fico': 682
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 4.65,
+    'fico': 737
+}, {
+    'rate': 14.24,
+    'fico': 672
+}, {
+    'rate': 7.49,
+    'fico': 687
+}, {
+    'rate': 6.91,
+    'fico': 707
+}, {
+    'rate': 11.08,
+    'fico': 692
+}, {
+    'rate': 15.0,
+    'fico': 697
+}, {
+    'rate': 10.1,
+    'fico': 667
+}, {
+    'rate': 15.97,
+    'fico': 682
+}, {
+    'rate': 2.78,
+    'fico': 747
+}, {
+    'rate': 11.4,
+    'fico': 687
+}, {
+    'rate': 12.7,
+    'fico': 667
+}, {
+    'rate': 2.92,
+    'fico': 747
+}, {
+    'rate': 13.04,
+    'fico': 677
+}, {
+    'rate': 8.24,
+    'fico': 727
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 6.74,
+    'fico': 712
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 10.23,
+    'fico': 692
+}, {
+    'rate': 10.86,
+    'fico': 672
+}, {
+    'rate': 7.74,
+    'fico': 697
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 4.49,
+    'fico': 787
+}, {
+    'rate': 15.24,
+    'fico': 677
+}, {
+    'rate': 14.02,
+    'fico': 697
+}, {
+    'rate': 11.08,
+    'fico': 687
+}, {
+    'rate': 20.08,
+    'fico': 667
+}, {
+    'rate': 10.84,
+    'fico': 662
+}, {
+    'rate': 12.33,
+    'fico': 702
+}, {
+    'rate': 14.33,
+    'fico': 692
+}, {
+    'rate': 10.47,
+    'fico': 667
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 7.37,
+    'fico': 722
+}, {
+    'rate': 10.18,
+    'fico': 672
+}, {
+    'rate': 8.58,
+    'fico': 727
+}, {
+    'rate': 6.66,
+    'fico': 707
+}, {
+    'rate': 15.8,
+    'fico': 692
+}, {
+    'rate': 7.84,
+    'fico': 747
+}, {
+    'rate': 12.2,
+    'fico': 642
+}, {
+    'rate': 4.65,
+    'fico': 707
+}, {
+    'rate': 15.97,
+    'fico': 667
+}, {
+    'rate': 13.64,
+    'fico': 667
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 2.78,
+    'fico': 782
+}, {
+    'rate': 15.0,
+    'fico': 692
+}, {
+    'rate': 15.5,
+    'fico': 667
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 10.42,
+    'fico': 677
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 15.3,
+    'fico': 662
+}, {
+    'rate': 5.65,
+    'fico': 717
+}, {
+    'rate': 7.89,
+    'fico': 712
+}, {
+    'rate': 9.86,
+    'fico': 672
+}, {
+    'rate': 4.37,
+    'fico': 777
+}, {
+    'rate': 11.08,
+    'fico': 682
+}, {
+    'rate': 8.87,
+    'fico': 667
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 9.86,
+    'fico': 677
+}, {
+    'rate': 16.47,
+    'fico': 712
+}, {
+    'rate': 12.33,
+    'fico': 697
+}, {
+    'rate': 9.44,
+    'fico': 682
+}, {
+    'rate': 14.02,
+    'fico': 712
+}, {
+    'rate': 7.89,
+    'fico': 717
+}, {
+    'rate': 10.24,
+    'fico': 672
+}, {
+    'rate': 4.24,
+    'fico': 717
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 14.52,
+    'fico': 672
+}, {
+    'rate': 17.75,
+    'fico': 687
+}, {
+    'rate': 15.24,
+    'fico': 697
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 11.47,
+    'fico': 697
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 2.92,
+    'fico': 772
+}, {
+    'rate': 3.74,
+    'fico': 737
+}, {
+    'rate': 10.74,
+    'fico': 717
+}, {
+    'rate': 8.01,
+    'fico': 722
+}, {
+    'rate': 14.02,
+    'fico': 667
+}, {
+    'rate': 10.84,
+    'fico': 687
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 11.08,
+    'fico': 672
+}, {
+    'rate': 18.24,
+    'fico': 677
+}, {
+    'rate': 12.55,
+    'fico': 672
+}, {
+    'rate': 14.02,
+    'fico': 727
+}, {
+    'rate': 18.24,
+    'fico': 662
+}, {
+    'rate': 9.28,
+    'fico': 702
+}, {
+    'rate': 14.65,
+    'fico': 677
+}, {
+    'rate': 7.89,
+    'fico': 707
+}, {
+    'rate': 9.86,
+    'fico': 692
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 20.51,
+    'fico': 667
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 10.86,
+    'fico': 677
+}, {
+    'rate': 18.73,
+    'fico': 682
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 682
+}, {
+    'rate': 15.8,
+    'fico': 687
+}, {
+    'rate': 10.24,
+    'fico': 682
+}, {
+    'rate': 13.52,
+    'fico': 692
+}, {
+    'rate': 7.49,
+    'fico': 722
+}, {
+    'rate': 11.4,
+    'fico': 667
+}, {
+    'rate': 6.66,
+    'fico': 732
+}, {
+    'rate': 18.72,
+    'fico': 672
+}, {
+    'rate': 11.4,
+    'fico': 682
+}, {
+    'rate': 14.02,
+    'fico': 667
+}, {
+    'rate': 15.24,
+    'fico': 662
+}, {
+    'rate': 9.28,
+    'fico': 707
+}, {
+    'rate': 9.86,
+    'fico': 692
+}, {
+    'rate': 9.44,
+    'fico': 722
+}, {
+    'rate': 5.65,
+    'fico': 702
+}, {
+    'rate': 4.65,
+    'fico': 707
+}, {
+    'rate': 7.4,
+    'fico': 722
+}, {
+    'rate': 4.65,
+    'fico': 712
+}, {
+    'rate': 12.08,
+    'fico': 662
+}, {
+    'rate': 9.74,
+    'fico': 712
+}, {
+    'rate': 12.74,
+    'fico': 667
+}, {
+    'rate': 7.34,
+    'fico': 747
+}, {
+    'rate': 13.04,
+    'fico': 712
+}, {
+    'rate': 12.06,
+    'fico': 747
+}, {
+    'rate': 13.64,
+    'fico': 662
+}, {
+    'rate': 6.91,
+    'fico': 732
+}, {
+    'rate': 7.0,
+    'fico': 732
+}, {
+    'rate': 9.86,
+    'fico': 672
+}, {
+    'rate': 6.66,
+    'fico': 732
+}, {
+    'rate': 14.02,
+    'fico': 707
+}, {
+    'rate': 5.24,
+    'fico': 732
+}, {
+    'rate': 19.53,
+    'fico': 667
+}, {
+    'rate': 8.46,
+    'fico': 702
+}, {
+    'rate': 14.02,
+    'fico': 672
+}, {
+    'rate': 9.86,
+    'fico': 747
+}, {
+    'rate': 15.3,
+    'fico': 672
+}, {
+    'rate': 10.22,
+    'fico': 702
+}, {
+    'rate': 10.74,
+    'fico': 727
+}, {
+    'rate': 10.74,
+    'fico': 702
+}, {
+    'rate': 12.02,
+    'fico': 672
+}, {
+    'rate': 18.23,
+    'fico': 667
+}, {
+    'rate': 8.93,
+    'fico': 747
+}, {
+    'rate': 6.51,
+    'fico': 712
+}, {
+    'rate': 11.96,
+    'fico': 672
+}, {
+    'rate': 10.6,
+    'fico': 722
+}, {
+    'rate': 16.44,
+    'fico': 707
+}, {
+    'rate': 13.04,
+    'fico': 682
+}, {
+    'rate': 8.23,
+    'fico': 717
+}, {
+    'rate': 9.86,
+    'fico': 737
+}, {
+    'rate': 6.38,
+    'fico': 792
+}, {
+    'rate': 6.83,
+    'fico': 757
+}, {
+    'rate': 7.0,
+    'fico': 752
+}, {
+    'rate': 14.02,
+    'fico': 682
+}, {
+    'rate': 11.08,
+    'fico': 672
+}, {
+    'rate': 15.24,
+    'fico': 662
+}, {
+    'rate': 13.52,
+    'fico': 687
+}, {
+    'rate': 15.78,
+    'fico': 672
+}, {
+    'rate': 7.89,
+    'fico': 727
+}, {
+    'rate': 2.78,
+    'fico': 782
+}, {
+    'rate': 10.42,
+    'fico': 692
+}, {
+    'rate': 8.61,
+    'fico': 707
+}, {
+    'rate': 12.06,
+    'fico': 687
+}, {
+    'rate': 11.66,
+    'fico': 722
+}, {
+    'rate': 13.04,
+    'fico': 662
+}, {
+    'rate': 9.73,
+    'fico': 667
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 12.12,
+    'fico': 677
+}, {
+    'rate': 7.11,
+    'fico': 767
+}, {
+    'rate': 7.87,
+    'fico': 702
+}, {
+    'rate': 5.65,
+    'fico': 702
+}, {
+    'rate': 4.24,
+    'fico': 732
+}, {
+    'rate': 6.66,
+    'fico': 727
+}, {
+    'rate': 14.02,
+    'fico': 662
+}, {
+    'rate': 10.84,
+    'fico': 712
+}, {
+    'rate': 7.89,
+    'fico': 702
+}, {
+    'rate': 3.37,
+    'fico': 792
+}, {
+    'rate': 7.87,
+    'fico': 777
+}, {
+    'rate': 8.24,
+    'fico': 692
+}, {
+    'rate': 3.74,
+    'fico': 747
+}, {
+    'rate': 10.74,
+    'fico': 732
+}, {
+    'rate': 20.03,
+    'fico': 677
+}, {
+    'rate': 10.22,
+    'fico': 692
+}, {
+    'rate': 12.43,
+    'fico': 682
+}, {
+    'rate': 4.04,
+    'fico': 742
+}, {
+    'rate': 17.25,
+    'fico': 672
+}, {
+    'rate': 8.24,
+    'fico': 782
+}, {
+    'rate': 4.65,
+    'fico': 812
+}, {
+    'rate': 13.64,
+    'fico': 702
+}, {
+    'rate': 10.42,
+    'fico': 697
+}, {
+    'rate': 14.02,
+    'fico': 672
+}, {
+    'rate': 8.46,
+    'fico': 722
+}, {
+    'rate': 4.65,
+    'fico': 767
+}, {
+    'rate': 7.37,
+    'fico': 762
+}, {
+    'rate': 7.78,
+    'fico': 682
+}, {
+    'rate': 9.86,
+    'fico': 677
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 7.11,
+    'fico': 722
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 3.37,
+    'fico': 767
+}, {
+    'rate': 13.1,
+    'fico': 667
+}, {
+    'rate': 9.43,
+    'fico': 692
+}, {
+    'rate': 11.95,
+    'fico': 677
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 7.89,
+    'fico': 702
+}, {
+    'rate': 7.74,
+    'fico': 722
+}, {
+    'rate': 15.8,
+    'fico': 737
+}, {
+    'rate': 11.34,
+    'fico': 707
+}, {
+    'rate': 2.78,
+    'fico': 752
+}, {
+    'rate': 8.87,
+    'fico': 702
+}, {
+    'rate': 11.47,
+    'fico': 662
+}, {
+    'rate': 3.37,
+    'fico': 772
+}, {
+    'rate': 20.51,
+    'fico': 662
+}, {
+    'rate': 8.87,
+    'fico': 717
+}, {
+    'rate': 15.8,
+    'fico': 677
+}, {
+    'rate': 3.37,
+    'fico': 742
+}, {
+    'rate': 13.64,
+    'fico': 697
+}, {
+    'rate': 3.29,
+    'fico': 727
+}, {
+    'rate': 7.13,
+    'fico': 782
+}, {
+    'rate': 5.65,
+    'fico': 707
+}, {
+    'rate': 5.65,
+    'fico': 747
+}, {
+    'rate': 11.02,
+    'fico': 737
+}, {
+    'rate': 11.02,
+    'fico': 667
+}, {
+    'rate': 9.86,
+    'fico': 672
+}, {
+    'rate': 12.03,
+    'fico': 702
+}, {
+    'rate': 14.02,
+    'fico': 672
+}, {
+    'rate': 4.26,
+    'fico': 787
+}, {
+    'rate': 8.87,
+    'fico': 707
+}, {
+    'rate': 3.37,
+    'fico': 742
+}, {
+    'rate': 4.65,
+    'fico': 747
+}, {
+    'rate': 3.89,
+    'fico': 767
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 15.5,
+    'fico': 697
+}, {
+    'rate': 8.58,
+    'fico': 707
+}, {
+    'rate': 10.42,
+    'fico': 732
+}, {
+    'rate': 11.08,
+    'fico': 692
+}, {
+    'rate': 2.78,
+    'fico': 772
+}, {
+    'rate': 4.37,
+    'fico': 727
+}, {
+    'rate': 9.28,
+    'fico': 727
+}, {
+    'rate': 11.08,
+    'fico': 717
+}, {
+    'rate': 12.08,
+    'fico': 672
+}, {
+    'rate': 15.24,
+    'fico': 672
+}, {
+    'rate': 11.34,
+    'fico': 692
+}, {
+    'rate': 10.5,
+    'fico': 667
+}, {
+    'rate': 2.17,
+    'fico': 782
+}, {
+    'rate': 10.84,
+    'fico': 687
+}, {
+    'rate': 6.07,
+    'fico': 782
+}, {
+    'rate': 10.74,
+    'fico': 677
+}, {
+    'rate': 7.89,
+    'fico': 672
+}, {
+    'rate': 14.74,
+    'fico': 677
+}, {
+    'rate': 13.04,
+    'fico': 737
+}, {
+    'rate': 3.29,
+    'fico': 732
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 8.87,
+    'fico': 677
+}, {
+    'rate': 12.55,
+    'fico': 677
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 9.48,
+    'fico': 677
+}, {
+    'rate': 16.47,
+    'fico': 687
+}, {
+    'rate': 7.86,
+    'fico': 702
+}, {
+    'rate': 4.37,
+    'fico': 737
+}, {
+    'rate': 3.89,
+    'fico': 752
+}, {
+    'rate': 4.65,
+    'fico': 772
+}, {
+    'rate': 16.66,
+    'fico': 672
+}, {
+    'rate': 4.82,
+    'fico': 762
+}, {
+    'rate': 15.39,
+    'fico': 677
+}, {
+    'rate': 5.65,
+    'fico': 732
+}, {
+    'rate': 8.87,
+    'fico': 707
+}, {
+    'rate': 8.58,
+    'fico': 732
+}, {
+    'rate': 16.49,
+    'fico': 662
+}, {
+    'rate': 7.89,
+    'fico': 687
+}, {
+    'rate': 11.08,
+    'fico': 712
+}, {
+    'rate': 12.06,
+    'fico': 697
+}, {
+    'rate': 4.41,
+    'fico': 742
+}, {
+    'rate': 6.74,
+    'fico': 697
+}, {
+    'rate': 5.65,
+    'fico': 762
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 7.34,
+    'fico': 722
+}, {
+    'rate': 9.59,
+    'fico': 672
+}, {
+    'rate': 4.65,
+    'fico': 712
+}, {
+    'rate': 4.37,
+    'fico': 722
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 10.24,
+    'fico': 677
+}, {
+    'rate': 9.36,
+    'fico': 677
+}, {
+    'rate': 10.22,
+    'fico': 692
+}, {
+    'rate': 11.98,
+    'fico': 732
+}, {
+    'rate': 10.74,
+    'fico': 712
+}, {
+    'rate': 10.36,
+    'fico': 697
+}, {
+    'rate': 10.97,
+    'fico': 682
+}, {
+    'rate': 3.37,
+    'fico': 732
+}, {
+    'rate': 13.07,
+    'fico': 702
+}, {
+    'rate': 8.64,
+    'fico': 697
+}, {
+    'rate': 7.49,
+    'fico': 702
+}, {
+    'rate': 9.86,
+    'fico': 742
+}, {
+    'rate': 12.7,
+    'fico': 707
+}, {
+    'rate': 2.54,
+    'fico': 767
+}, {
+    'rate': 8.46,
+    'fico': 727
+}, {
+    'rate': 8.46,
+    'fico': 757
+}, {
+    'rate': 8.87,
+    'fico': 702
+}, {
+    'rate': 7.11,
+    'fico': 692
+}, {
+    'rate': 15.0,
+    'fico': 662
+}, {
+    'rate': 9.86,
+    'fico': 712
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 8.46,
+    'fico': 707
+}, {
+    'rate': 8.87,
+    'fico': 667
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 5.07,
+    'fico': 752
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 8.87,
+    'fico': 712
+}, {
+    'rate': 8.87,
+    'fico': 702
+}, {
+    'rate': 4.37,
+    'fico': 767
+}, {
+    'rate': 9.44,
+    'fico': 727
+}, {
+    'rate': 7.74,
+    'fico': 702
+}, {
+    'rate': 6.91,
+    'fico': 767
+}, {
+    'rate': 15.5,
+    'fico': 667
+}, {
+    'rate': 10.84,
+    'fico': 697
+}, {
+    'rate': 10.23,
+    'fico': 712
+}, {
+    'rate': 11.08,
+    'fico': 702
+}, {
+    'rate': 10.18,
+    'fico': 747
+}, {
+    'rate': 11.98,
+    'fico': 707
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 11.98,
+    'fico': 762
+}, {
+    'rate': 19.7,
+    'fico': 687
+}, {
+    'rate': 8.93,
+    'fico': 742
+}, {
+    'rate': 2.78,
+    'fico': 792
+}, {
+    'rate': 11.8,
+    'fico': 677
+}, {
+    'rate': 7.87,
+    'fico': 752
+}, {
+    'rate': 4.5,
+    'fico': 762
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 14.02,
+    'fico': 672
+}, {
+    'rate': 9.44,
+    'fico': 712
+}, {
+    'rate': 19.22,
+    'fico': 662
+}, {
+    'rate': 14.02,
+    'fico': 662
+}, {
+    'rate': 9.44,
+    'fico': 667
+}, {
+    'rate': 4.41,
+    'fico': 727
+}, {
+    'rate': 13.04,
+    'fico': 697
+}, {
+    'rate': 15.0,
+    'fico': 687
+}, {
+    'rate': 4.65,
+    'fico': 757
+}, {
+    'rate': 12.71,
+    'fico': 682
+}, {
+    'rate': 17.52,
+    'fico': 672
+}, {
+    'rate': 13.07,
+    'fico': 697
+}, {
+    'rate': 5.38,
+    'fico': 732
+}, {
+    'rate': 3.37,
+    'fico': 762
+}, {
+    'rate': 18.24,
+    'fico': 707
+}, {
+    'rate': 9.17,
+    'fico': 687
+}, {
+    'rate': 7.49,
+    'fico': 722
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 4.63,
+    'fico': 792
+}, {
+    'rate': 8.87,
+    'fico': 722
+}, {
+    'rate': 9.98,
+    'fico': 737
+}, {
+    'rate': 8.87,
+    'fico': 792
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 10.84,
+    'fico': 682
+}, {
+    'rate': 4.63,
+    'fico': 747
+}, {
+    'rate': 7.89,
+    'fico': 692
+}, {
+    'rate': 8.72,
+    'fico': 687
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 13.04,
+    'fico': 697
+}, {
+    'rate': 6.75,
+    'fico': 737
+}, {
+    'rate': 5.65,
+    'fico': 717
+}, {
+    'rate': 17.24,
+    'fico': 662
+}, {
+    'rate': 13.24,
+    'fico': 682
+}, {
+    'rate': 16.47,
+    'fico': 692
+}, {
+    'rate': 12.55,
+    'fico': 677
+}, {
+    'rate': 12.71,
+    'fico': 697
+}, {
+    'rate': 8.87,
+    'fico': 707
+}, {
+    'rate': 8.64,
+    'fico': 697
+}, {
+    'rate': 5.65,
+    'fico': 727
+}, {
+    'rate': 20.03,
+    'fico': 677
+}, {
+    'rate': 3.37,
+    'fico': 737
+}, {
+    'rate': 21.45,
+    'fico': 677
+}, {
+    'rate': 8.87,
+    'fico': 707
+}, {
+    'rate': 17.05,
+    'fico': 697
+}, {
+    'rate': 11.49,
+    'fico': 677
+}, {
+    'rate': 12.06,
+    'fico': 697
+}, {
+    'rate': 11.4,
+    'fico': 732
+}, {
+    'rate': 11.08,
+    'fico': 687
+}, {
+    'rate': 11.71,
+    'fico': 672
+}, {
+    'rate': 14.74,
+    'fico': 662
+}, {
+    'rate': 7.11,
+    'fico': 692
+}, {
+    'rate': 2.17,
+    'fico': 787
+}, {
+    'rate': 4.63,
+    'fico': 787
+}, {
+    'rate': 12.06,
+    'fico': 692
+}, {
+    'rate': 18.23,
+    'fico': 697
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 12.06,
+    'fico': 667
+}, {
+    'rate': 2.74,
+    'fico': 767
+}, {
+    'rate': 11.47,
+    'fico': 672
+}, {
+    'rate': 8.46,
+    'fico': 722
+}, {
+    'rate': 9.86,
+    'fico': 712
+}, {
+    'rate': 8.74,
+    'fico': 747
+}, {
+    'rate': 15.97,
+    'fico': 677
+}, {
+    'rate': 8.72,
+    'fico': 682
+}, {
+    'rate': 9.16,
+    'fico': 722
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 9.74,
+    'fico': 692
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 21.08,
+    'fico': 672
+}, {
+    'rate': 14.52,
+    'fico': 682
+}, {
+    'rate': 7.0,
+    'fico': 732
+}, {
+    'rate': 8.46,
+    'fico': 697
+}, {
+    'rate': 9.91,
+    'fico': 702
+}, {
+    'rate': 4.65,
+    'fico': 762
+}, {
+    'rate': 6.66,
+    'fico': 722
+}, {
+    'rate': 15.8,
+    'fico': 667
+}, {
+    'rate': 10.92,
+    'fico': 682
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 7.89,
+    'fico': 737
+}, {
+    'rate': 8.46,
+    'fico': 707
+}, {
+    'rate': 2.78,
+    'fico': 782
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 20.03,
+    'fico': 662
+}, {
+    'rate': 15.24,
+    'fico': 717
+}, {
+    'rate': 12.06,
+    'fico': 662
+}, {
+    'rate': 8.34,
+    'fico': 682
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 8.93,
+    'fico': 717
+}, {
+    'rate': 14.31,
+    'fico': 682
+}, {
+    'rate': 15.8,
+    'fico': 672
+}, {
+    'rate': 5.65,
+    'fico': 717
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 9.98,
+    'fico': 732
+}, {
+    'rate': 4.65,
+    'fico': 762
+}, {
+    'rate': 8.64,
+    'fico': 747
+}, {
+    'rate': 15.39,
+    'fico': 722
+}, {
+    'rate': 17.25,
+    'fico': 707
+}, {
+    'rate': 9.91,
+    'fico': 682
+}, {
+    'rate': 12.55,
+    'fico': 677
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 11.4,
+    'fico': 672
+}, {
+    'rate': 6.91,
+    'fico': 717
+}, {
+    'rate': 14.02,
+    'fico': 672
+}, {
+    'rate': 10.74,
+    'fico': 722
+}, {
+    'rate': 7.87,
+    'fico': 707
+}, {
+    'rate': 2.74,
+    'fico': 762
+}, {
+    'rate': 11.02,
+    'fico': 677
+}, {
+    'rate': 11.4,
+    'fico': 697
+}, {
+    'rate': 8.87,
+    'fico': 677
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 19.7,
+    'fico': 682
+}, {
+    'rate': 7.34,
+    'fico': 712
+}, {
+    'rate': 8.87,
+    'fico': 752
+}, {
+    'rate': 14.02,
+    'fico': 697
+}, {
+    'rate': 15.24,
+    'fico': 677
+}, {
+    'rate': 4.26,
+    'fico': 807
+}, {
+    'rate': 6.51,
+    'fico': 727
+}, {
+    'rate': 8.64,
+    'fico': 722
+}, {
+    'rate': 18.24,
+    'fico': 687
+}, {
+    'rate': 20.38,
+    'fico': 662
+}, {
+    'rate': 15.5,
+    'fico': 677
+}, {
+    'rate': 10.24,
+    'fico': 697
+}, {
+    'rate': 5.95,
+    'fico': 732
+}, {
+    'rate': 7.89,
+    'fico': 797
+}, {
+    'rate': 16.66,
+    'fico': 672
+}, {
+    'rate': 8.11,
+    'fico': 687
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 12.71,
+    'fico': 682
+}, {
+    'rate': 11.02,
+    'fico': 672
+}, {
+    'rate': 6.0,
+    'fico': 702
+}, {
+    'rate': 5.65,
+    'fico': 727
+}, {
+    'rate': 15.24,
+    'fico': 722
+}, {
+    'rate': 14.24,
+    'fico': 697
+}, {
+    'rate': 3.37,
+    'fico': 767
+}, {
+    'rate': 2.78,
+    'fico': 767
+}, {
+    'rate': 6.74,
+    'fico': 752
+}, {
+    'rate': 19.53,
+    'fico': 662
+}, {
+    'rate': 5.65,
+    'fico': 767
+}, {
+    'rate': 9.74,
+    'fico': 742
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 14.02,
+    'fico': 677
+}, {
+    'rate': 2.74,
+    'fico': 742
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 13.64,
+    'fico': 747
+}, {
+    'rate': 7.4,
+    'fico': 722
+}, {
+    'rate': 5.65,
+    'fico': 757
+}, {
+    'rate': 10.24,
+    'fico': 722
+}, {
+    'rate': 13.52,
+    'fico': 672
+}, {
+    'rate': 2.54,
+    'fico': 767
+}, {
+    'rate': 17.24,
+    'fico': 662
+}, {
+    'rate': 11.36,
+    'fico': 667
+}, {
+    'rate': 18.49,
+    'fico': 662
+}, {
+    'rate': 12.74,
+    'fico': 677
+}, {
+    'rate': 8.74,
+    'fico': 757
+}, {
+    'rate': 10.73,
+    'fico': 717
+}, {
+    'rate': 2.74,
+    'fico': 772
+}, {
+    'rate': 8.87,
+    'fico': 717
+}, {
+    'rate': 6.51,
+    'fico': 707
+}, {
+    'rate': 4.63,
+    'fico': 762
+}, {
+    'rate': 15.97,
+    'fico': 682
+}, {
+    'rate': 14.74,
+    'fico': 717
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 14.74,
+    'fico': 687
+}, {
+    'rate': 15.24,
+    'fico': 662
+}, {
+    'rate': 8.74,
+    'fico': 722
+}, {
+    'rate': 3.51,
+    'fico': 757
+}, {
+    'rate': 16.47,
+    'fico': 677
+}, {
+    'rate': 10.74,
+    'fico': 697
+}, {
+    'rate': 5.82,
+    'fico': 752
+}, {
+    'rate': 7.49,
+    'fico': 702
+}, {
+    'rate': 17.25,
+    'fico': 692
+}, {
+    'rate': 9.62,
+    'fico': 692
+}, {
+    'rate': 7.86,
+    'fico': 702
+}, {
+    'rate': 3.37,
+    'fico': 792
+}, {
+    'rate': 7.49,
+    'fico': 742
+}, {
+    'rate': 8.87,
+    'fico': 712
+}, {
+    'rate': 11.57,
+    'fico': 657
+}, {
+    'rate': 4.65,
+    'fico': 752
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 4.26,
+    'fico': 767
+}, {
+    'rate': 6.51,
+    'fico': 707
+}, {
+    'rate': 4.65,
+    'fico': 717
+}, {
+    'rate': 14.52,
+    'fico': 672
+}, {
+    'rate': 10.42,
+    'fico': 747
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 6.91,
+    'fico': 757
+}, {
+    'rate': 8.23,
+    'fico': 747
+}, {
+    'rate': 9.86,
+    'fico': 717
+}, {
+    'rate': 3.37,
+    'fico': 762
+}, {
+    'rate': 8.33,
+    'fico': 717
+}, {
+    'rate': 17.24,
+    'fico': 662
+}, {
+    'rate': 8.87,
+    'fico': 712
+}, {
+    'rate': 13.52,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 697
+}, {
+    'rate': 14.31,
+    'fico': 672
+}, {
+    'rate': 11.08,
+    'fico': 692
+}, {
+    'rate': 8.58,
+    'fico': 722
+}, {
+    'rate': 9.86,
+    'fico': 707
+}, {
+    'rate': 4.65,
+    'fico': 712
+}, {
+    'rate': 10.42,
+    'fico': 677
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 14.33,
+    'fico': 727
+}, {
+    'rate': 3.89,
+    'fico': 757
+}, {
+    'rate': 11.08,
+    'fico': 722
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 3.37,
+    'fico': 752
+}, {
+    'rate': 8.46,
+    'fico': 707
+}, {
+    'rate': 16.74,
+    'fico': 712
+}, {
+    'rate': 19.22,
+    'fico': 672
+}, {
+    'rate': 15.39,
+    'fico': 677
+}, {
+    'rate': 4.63,
+    'fico': 732
+}, {
+    'rate': 11.4,
+    'fico': 707
+}, {
+    'rate': 12.06,
+    'fico': 667
+}, {
+    'rate': 15.14,
+    'fico': 677
+}, {
+    'rate': 4.65,
+    'fico': 772
+}, {
+    'rate': 4.65,
+    'fico': 732
+}, {
+    'rate': 10.84,
+    'fico': 702
+}, {
+    'rate': 4.65,
+    'fico': 742
+}, {
+    'rate': 11.02,
+    'fico': 697
+}, {
+    'rate': 9.86,
+    'fico': 712
+}, {
+    'rate': 6.75,
+    'fico': 747
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 9.44,
+    'fico': 737
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 15.24,
+    'fico': 707
+}, {
+    'rate': 15.0,
+    'fico': 697
+}, {
+    'rate': 11.02,
+    'fico': 712
+}, {
+    'rate': 2.78,
+    'fico': 757
+}, {
+    'rate': 11.76,
+    'fico': 697
+}, {
+    'rate': 11.21,
+    'fico': 682
+}, {
+    'rate': 10.6,
+    'fico': 677
+}, {
+    'rate': 11.4,
+    'fico': 692
+}, {
+    'rate': 13.07,
+    'fico': 687
+}, {
+    'rate': 7.89,
+    'fico': 697
+}, {
+    'rate': 10.92,
+    'fico': 672
+}, {
+    'rate': 9.86,
+    'fico': 777
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 7.49,
+    'fico': 702
+}, {
+    'rate': 7.89,
+    'fico': 707
+}, {
+    'rate': 7.4,
+    'fico': 747
+}, {
+    'rate': 8.24,
+    'fico': 727
+}, {
+    'rate': 14.52,
+    'fico': 672
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 13.24,
+    'fico': 712
+}, {
+    'rate': 4.66,
+    'fico': 732
+}, {
+    'rate': 4.65,
+    'fico': 752
+}, {
+    'rate': 5.65,
+    'fico': 717
+}, {
+    'rate': 14.24,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 712
+}, {
+    'rate': 8.87,
+    'fico': 717
+}, {
+    'rate': 12.7,
+    'fico': 702
+}, {
+    'rate': 14.52,
+    'fico': 712
+}, {
+    'rate': 4.15,
+    'fico': 772
+}, {
+    'rate': 12.4,
+    'fico': 737
+}, {
+    'rate': 6.51,
+    'fico': 727
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 12.56,
+    'fico': 727
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 7.5,
+    'fico': 757
+}, {
+    'rate': 12.71,
+    'fico': 662
+}, {
+    'rate': 12.06,
+    'fico': 687
+}, {
+    'rate': 11.57,
+    'fico': 647
+}, {
+    'rate': 2.78,
+    'fico': 762
+}, {
+    'rate': 4.65,
+    'fico': 732
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 15.97,
+    'fico': 682
+}, {
+    'rate': 12.74,
+    'fico': 677
+}, {
+    'rate': 17.25,
+    'fico': 697
+}, {
+    'rate': 10.24,
+    'fico': 707
+}, {
+    'rate': 10.74,
+    'fico': 677
+}, {
+    'rate': 7.34,
+    'fico': 732
+}, {
+    'rate': 2.74,
+    'fico': 767
+}, {
+    'rate': 10.84,
+    'fico': 682
+}, {
+    'rate': 11.02,
+    'fico': 677
+}, {
+    'rate': 5.65,
+    'fico': 707
+}, {
+    'rate': 14.02,
+    'fico': 667
+}, {
+    'rate': 12.74,
+    'fico': 692
+}, {
+    'rate': 6.91,
+    'fico': 717
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 12.06,
+    'fico': 667
+}, {
+    'rate': 6.91,
+    'fico': 722
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 10.24,
+    'fico': 702
+}, {
+    'rate': 11.02,
+    'fico': 672
+}, {
+    'rate': 16.44,
+    'fico': 667
+}, {
+    'rate': 4.65,
+    'fico': 707
+}, {
+    'rate': 18.24,
+    'fico': 702
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 15.0,
+    'fico': 662
+}, {
+    'rate': 3.37,
+    'fico': 757
+}, {
+    'rate': 8.87,
+    'fico': 717
+}, {
+    'rate': 10.84,
+    'fico': 692
+}, {
+    'rate': 10.74,
+    'fico': 707
+}, {
+    'rate': 18.73,
+    'fico': 662
+}, {
+    'rate': 15.8,
+    'fico': 692
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 8.46,
+    'fico': 702
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 7.89,
+    'fico': 777
+}, {
+    'rate': 12.55,
+    'fico': 682
+}, {
+    'rate': 4.37,
+    'fico': 752
+}, {
+    'rate': 9.44,
+    'fico': 687
+}, {
+    'rate': 5.34,
+    'fico': 762
+}, {
+    'rate': 4.75,
+    'fico': 767
+}, {
+    'rate': 9.17,
+    'fico': 707
+}, {
+    'rate': 3.37,
+    'fico': 762
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 4.65,
+    'fico': 812
+}, {
+    'rate': 15.78,
+    'fico': 687
+}, {
+    'rate': 8.87,
+    'fico': 717
+}, {
+    'rate': 2.54,
+    'fico': 752
+}, {
+    'rate': 13.04,
+    'fico': 687
+}, {
+    'rate': 15.24,
+    'fico': 702
+}, {
+    'rate': 8.87,
+    'fico': 702
+}, {
+    'rate': 11.34,
+    'fico': 662
+}, {
+    'rate': 19.2,
+    'fico': 667
+}, {
+    'rate': 11.45,
+    'fico': 647
+}, {
+    'rate': 15.5,
+    'fico': 682
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 12.37,
+    'fico': 672
+}, {
+    'rate': 2.17,
+    'fico': 802
+}, {
+    'rate': 4.37,
+    'fico': 737
+}, {
+    'rate': 14.52,
+    'fico': 687
+}, {
+    'rate': 4.24,
+    'fico': 747
+}, {
+    'rate': 20.51,
+    'fico': 667
+}, {
+    'rate': 4.65,
+    'fico': 717
+}, {
+    'rate': 6.95,
+    'fico': 802
+}, {
+    'rate': 12.37,
+    'fico': 697
+}, {
+    'rate': 12.33,
+    'fico': 692
+}, {
+    'rate': 11.4,
+    'fico': 712
+}, {
+    'rate': 7.34,
+    'fico': 767
+}, {
+    'rate': 6.66,
+    'fico': 712
+}, {
+    'rate': 15.24,
+    'fico': 672
+}, {
+    'rate': 6.51,
+    'fico': 787
+}, {
+    'rate': 2.75,
+    'fico': 697
+}, {
+    'rate': 11.08,
+    'fico': 697
+}, {
+    'rate': 8.24,
+    'fico': 707
+}, {
+    'rate': 2.78,
+    'fico': 802
+}, {
+    'rate': 3.37,
+    'fico': 732
+}, {
+    'rate': 15.3,
+    'fico': 702
+}, {
+    'rate': 5.65,
+    'fico': 732
+}, {
+    'rate': 2.78,
+    'fico': 752
+}, {
+    'rate': 14.02,
+    'fico': 707
+}, {
+    'rate': 12.74,
+    'fico': 677
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 4.49,
+    'fico': 777
+}, {
+    'rate': 8.01,
+    'fico': 732
+}, {
+    'rate': 15.8,
+    'fico': 662
+}, {
+    'rate': 9.86,
+    'fico': 722
+}, {
+    'rate': 11.36,
+    'fico': 732
+}, {
+    'rate': 5.65,
+    'fico': 732
+}, {
+    'rate': 5.65,
+    'fico': 787
+}, {
+    'rate': 12.56,
+    'fico': 697
+}, {
+    'rate': 2.54,
+    'fico': 772
+}, {
+    'rate': 9.44,
+    'fico': 707
+}, {
+    'rate': 3.67,
+    'fico': 782
+}, {
+    'rate': 12.55,
+    'fico': 672
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 9.91,
+    'fico': 757
+}, {
+    'rate': 9.43,
+    'fico': 692
+}, {
+    'rate': 3.51,
+    'fico': 762
+}, {
+    'rate': 10.42,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 702
+}, {
+    'rate': 7.49,
+    'fico': 707
+}, {
+    'rate': 13.04,
+    'fico': 662
+}, {
+    'rate': 2.78,
+    'fico': 782
+}, {
+    'rate': 10.42,
+    'fico': 667
+}, {
+    'rate': 2.78,
+    'fico': 762
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 13.04,
+    'fico': 667
+}, {
+    'rate': 19.22,
+    'fico': 662
+}, {
+    'rate': 9.74,
+    'fico': 727
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 6.07,
+    'fico': 757
+}, {
+    'rate': 10.84,
+    'fico': 687
+}, {
+    'rate': 17.24,
+    'fico': 687
+}, {
+    'rate': 7.37,
+    'fico': 752
+}, {
+    'rate': 7.89,
+    'fico': 707
+}, {
+    'rate': 3.37,
+    'fico': 757
+}, {
+    'rate': 5.65,
+    'fico': 742
+}, {
+    'rate': 7.89,
+    'fico': 722
+}, {
+    'rate': 2.17,
+    'fico': 752
+}, {
+    'rate': 12.55,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 702
+}, {
+    'rate': 11.08,
+    'fico': 692
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 13.04,
+    'fico': 662
+}, {
+    'rate': 13.2,
+    'fico': 682
+}, {
+    'rate': 6.37,
+    'fico': 732
+}, {
+    'rate': 8.87,
+    'fico': 722
+}, {
+    'rate': 2.54,
+    'fico': 737
+}, {
+    'rate': 7.86,
+    'fico': 682
+}, {
+    'rate': 9.81,
+    'fico': 737
+}, {
+    'rate': 4.37,
+    'fico': 787
+}, {
+    'rate': 10.23,
+    'fico': 702
+}, {
+    'rate': 11.88,
+    'fico': 647
+}, {
+    'rate': 5.65,
+    'fico': 722
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 7.12,
+    'fico': 752
+}, {
+    'rate': 15.24,
+    'fico': 677
+}, {
+    'rate': 18.42,
+    'fico': 677
+}, {
+    'rate': 9.86,
+    'fico': 727
+}, {
+    'rate': 4.15,
+    'fico': 782
+}, {
+    'rate': 4.37,
+    'fico': 737
+}, {
+    'rate': 9.99,
+    'fico': 662
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 11.25,
+    'fico': 717
+}, {
+    'rate': 3.67,
+    'fico': 737
+}, {
+    'rate': 7.0,
+    'fico': 762
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 4.41,
+    'fico': 737
+}, {
+    'rate': 15.8,
+    'fico': 687
+}, {
+    'rate': 14.33,
+    'fico': 662
+}, {
+    'rate': 4.04,
+    'fico': 722
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 11.66,
+    'fico': 677
+}, {
+    'rate': 10.62,
+    'fico': 672
+}, {
+    'rate': 12.33,
+    'fico': 787
+}, {
+    'rate': 8.87,
+    'fico': 672
+}, {
+    'rate': 4.24,
+    'fico': 717
+}, {
+    'rate': 8.24,
+    'fico': 767
+}, {
+    'rate': 5.65,
+    'fico': 732
+}, {
+    'rate': 7.89,
+    'fico': 692
+}, {
+    'rate': 13.46,
+    'fico': 662
+}, {
+    'rate': 6.38,
+    'fico': 747
+}, {
+    'rate': 4.04,
+    'fico': 767
+}, {
+    'rate': 9.86,
+    'fico': 717
+}, {
+    'rate': 4.26,
+    'fico': 767
+}, {
+    'rate': 7.74,
+    'fico': 702
+}, {
+    'rate': 4.63,
+    'fico': 727
+}, {
+    'rate': 6.91,
+    'fico': 697
+}, {
+    'rate': 7.5,
+    'fico': 787
+}, {
+    'rate': 13.04,
+    'fico': 672
+}, {
+    'rate': 4.43,
+    'fico': 792
+}, {
+    'rate': 9.36,
+    'fico': 727
+}, {
+    'rate': 5.65,
+    'fico': 797
+}, {
+    'rate': 10.24,
+    'fico': 672
+}, {
+    'rate': 9.17,
+    'fico': 732
+}, {
+    'rate': 17.75,
+    'fico': 712
+}, {
+    'rate': 15.14,
+    'fico': 662
+}, {
+    'rate': 9.59,
+    'fico': 697
+}, {
+    'rate': 7.4,
+    'fico': 722
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 7.37,
+    'fico': 707
+}, {
+    'rate': 7.86,
+    'fico': 722
+}, {
+    'rate': 2.78,
+    'fico': 762
+}, {
+    'rate': 8.46,
+    'fico': 687
+}, {
+    'rate': 9.36,
+    'fico': 667
+}, {
+    'rate': 7.13,
+    'fico': 727
+}, {
+    'rate': 21.45,
+    'fico': 662
+}, {
+    'rate': 3.37,
+    'fico': 712
+}, {
+    'rate': 13.04,
+    'fico': 662
+}, {
+    'rate': 2.78,
+    'fico': 752
+}, {
+    'rate': 14.74,
+    'fico': 672
+}, {
+    'rate': 8.87,
+    'fico': 717
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 8.87,
+    'fico': 707
+}, {
+    'rate': 2.17,
+    'fico': 802
+}, {
+    'rate': 11.36,
+    'fico': 667
+}, {
+    'rate': 3.37,
+    'fico': 752
+}, {
+    'rate': 5.65,
+    'fico': 717
+}, {
+    'rate': 6.51,
+    'fico': 707
+}, {
+    'rate': 19.22,
+    'fico': 687
+}, {
+    'rate': 11.08,
+    'fico': 672
+}, {
+    'rate': 17.0,
+    'fico': 667
+}, {
+    'rate': 4.24,
+    'fico': 737
+}, {
+    'rate': 13.04,
+    'fico': 682
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 15.5,
+    'fico': 697
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 11.02,
+    'fico': 672
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 13.04,
+    'fico': 702
+}, {
+    'rate': 16.47,
+    'fico': 682
+}, {
+    'rate': 9.59,
+    'fico': 762
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 11.98,
+    'fico': 677
+}, {
+    'rate': 4.75,
+    'fico': 792
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 12.37,
+    'fico': 662
+}, {
+    'rate': 15.54,
+    'fico': 662
+}, {
+    'rate': 4.24,
+    'fico': 742
+}, {
+    'rate': 4.65,
+    'fico': 747
+}, {
+    'rate': 10.84,
+    'fico': 697
+}, {
+    'rate': 18.23,
+    'fico': 667
+}, {
+    'rate': 5.65,
+    'fico': 722
+}, {
+    'rate': 12.55,
+    'fico': 692
+}, {
+    'rate': 15.24,
+    'fico': 677
+}, {
+    'rate': 12.06,
+    'fico': 747
+}, {
+    'rate': 13.52,
+    'fico': 732
+}, {
+    'rate': 15.0,
+    'fico': 682
+}, {
+    'rate': 8.24,
+    'fico': 672
+}, {
+    'rate': 11.17,
+    'fico': 722
+}, {
+    'rate': 9.59,
+    'fico': 682
+}, {
+    'rate': 12.4,
+    'fico': 682
+}, {
+    'rate': 18.72,
+    'fico': 692
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 15.24,
+    'fico': 662
+}, {
+    'rate': 9.73,
+    'fico': 702
+}, {
+    'rate': 10.84,
+    'fico': 692
+}, {
+    'rate': 7.89,
+    'fico': 667
+}, {
+    'rate': 20.51,
+    'fico': 662
+}, {
+    'rate': 4.65,
+    'fico': 732
+}, {
+    'rate': 10.24,
+    'fico': 682
+}, {
+    'rate': 10.74,
+    'fico': 672
+}, {
+    'rate': 13.07,
+    'fico': 707
+}, {
+    'rate': 6.0,
+    'fico': 762
+}, {
+    'rate': 12.55,
+    'fico': 702
+}, {
+    'rate': 12.55,
+    'fico': 677
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 8.24,
+    'fico': 697
+}, {
+    'rate': 10.42,
+    'fico': 677
+}, {
+    'rate': 11.1,
+    'fico': 682
+}, {
+    'rate': 7.34,
+    'fico': 697
+}, {
+    'rate': 14.02,
+    'fico': 667
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 6.51,
+    'fico': 707
+}, {
+    'rate': 8.46,
+    'fico': 727
+}, {
+    'rate': 8.87,
+    'fico': 757
+}, {
+    'rate': 12.06,
+    'fico': 707
+}, {
+    'rate': 6.91,
+    'fico': 697
+}, {
+    'rate': 6.91,
+    'fico': 727
+}, {
+    'rate': 12.82,
+    'fico': 702
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 2.78,
+    'fico': 782
+}, {
+    'rate': 15.97,
+    'fico': 682
+}, {
+    'rate': 11.02,
+    'fico': 682
+}, {
+    'rate': 15.24,
+    'fico': 677
+}, {
+    'rate': 8.87,
+    'fico': 712
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 2.78,
+    'fico': 777
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 9.73,
+    'fico': 707
+}, {
+    'rate': 7.4,
+    'fico': 702
+}, {
+    'rate': 6.51,
+    'fico': 707
+}, {
+    'rate': 8.87,
+    'fico': 702
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 14.02,
+    'fico': 667
+}, {
+    'rate': 4.37,
+    'fico': 737
+}, {
+    'rate': 8.64,
+    'fico': 717
+}, {
+    'rate': 3.29,
+    'fico': 727
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 9.44,
+    'fico': 732
+}, {
+    'rate': 5.24,
+    'fico': 737
+}, {
+    'rate': 10.23,
+    'fico': 682
+}, {
+    'rate': 2.54,
+    'fico': 747
+}, {
+    'rate': 4.65,
+    'fico': 752
+}, {
+    'rate': 12.55,
+    'fico': 687
+}, {
+    'rate': 10.24,
+    'fico': 682
+}, {
+    'rate': 8.87,
+    'fico': 727
+}, {
+    'rate': 13.04,
+    'fico': 672
+}, {
+    'rate': 9.28,
+    'fico': 692
+}, {
+    'rate': 11.08,
+    'fico': 702
+}, {
+    'rate': 13.04,
+    'fico': 667
+}, {
+    'rate': 15.39,
+    'fico': 692
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 8.98,
+    'fico': 707
+}, {
+    'rate': 7.49,
+    'fico': 717
+}, {
+    'rate': 6.08,
+    'fico': 717
+}, {
+    'rate': 4.26,
+    'fico': 737
+}, {
+    'rate': 4.65,
+    'fico': 747
+}, {
+    'rate': 14.74,
+    'fico': 662
+}, {
+    'rate': 14.02,
+    'fico': 667
+}, {
+    'rate': 12.06,
+    'fico': 662
+}, {
+    'rate': 5.65,
+    'fico': 717
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 6.51,
+    'fico': 732
+}, {
+    'rate': 17.89,
+    'fico': 662
+}, {
+    'rate': 4.65,
+    'fico': 772
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 6.51,
+    'fico': 697
+}, {
+    'rate': 4.26,
+    'fico': 737
+}, {
+    'rate': 9.97,
+    'fico': 692
+}, {
+    'rate': 9.48,
+    'fico': 702
+}, {
+    'rate': 7.49,
+    'fico': 717
+}, {
+    'rate': 8.46,
+    'fico': 702
+}, {
+    'rate': 12.55,
+    'fico': 702
+}, {
+    'rate': 6.74,
+    'fico': 687
+}, {
+    'rate': 7.12,
+    'fico': 707
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 4.5,
+    'fico': 767
+}, {
+    'rate': 9.81,
+    'fico': 682
+}, {
+    'rate': 10.84,
+    'fico': 687
+}, {
+    'rate': 13.07,
+    'fico': 697
+}, {
+    'rate': 14.52,
+    'fico': 712
+}, {
+    'rate': 13.04,
+    'fico': 722
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 4.65,
+    'fico': 757
+}, {
+    'rate': 17.74,
+    'fico': 672
+}, {
+    'rate': 3.37,
+    'fico': 747
+}, {
+    'rate': 9.44,
+    'fico': 672
+}, {
+    'rate': 7.74,
+    'fico': 752
+}, {
+    'rate': 13.04,
+    'fico': 662
+}, {
+    'rate': 8.87,
+    'fico': 732
+}, {
+    'rate': 7.49,
+    'fico': 707
+}, {
+    'rate': 4.37,
+    'fico': 777
+}, {
+    'rate': 14.52,
+    'fico': 727
+}, {
+    'rate': 4.63,
+    'fico': 737
+}, {
+    'rate': 4.75,
+    'fico': 797
+}, {
+    'rate': 11.4,
+    'fico': 687
+}, {
+    'rate': 10.84,
+    'fico': 707
+}, {
+    'rate': 16.74,
+    'fico': 662
+}, {
+    'rate': 3.74,
+    'fico': 742
+}, {
+    'rate': 14.02,
+    'fico': 712
+}, {
+    'rate': 7.03,
+    'fico': 687
+}, {
+    'rate': 15.8,
+    'fico': 692
+}, {
+    'rate': 12.08,
+    'fico': 677
+}, {
+    'rate': 12.02,
+    'fico': 662
+}, {
+    'rate': 4.65,
+    'fico': 732
+}, {
+    'rate': 5.65,
+    'fico': 702
+}, {
+    'rate': 4.66,
+    'fico': 722
+}, {
+    'rate': 20.51,
+    'fico': 667
+}, {
+    'rate': 12.55,
+    'fico': 692
+}, {
+    'rate': 5.65,
+    'fico': 707
+}, {
+    'rate': 2.54,
+    'fico': 752
+}, {
+    'rate': 16.17,
+    'fico': 707
+}, {
+    'rate': 11.08,
+    'fico': 722
+}, {
+    'rate': 3.37,
+    'fico': 807
+}, {
+    'rate': 11.4,
+    'fico': 687
+}, {
+    'rate': 9.61,
+    'fico': 672
+}, {
+    'rate': 10.24,
+    'fico': 742
+}, {
+    'rate': 12.02,
+    'fico': 682
+}, {
+    'rate': 8.74,
+    'fico': 727
+}, {
+    'rate': 10.42,
+    'fico': 702
+}, {
+    'rate': 14.74,
+    'fico': 667
+}, {
+    'rate': 4.65,
+    'fico': 757
+}, {
+    'rate': 12.55,
+    'fico': 667
+}, {
+    'rate': 12.7,
+    'fico': 687
+}, {
+    'rate': 2.78,
+    'fico': 752
+}, {
+    'rate': 8.23,
+    'fico': 737
+}, {
+    'rate': 7.74,
+    'fico': 742
+}, {
+    'rate': 2.78,
+    'fico': 817
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 9.28,
+    'fico': 782
+}, {
+    'rate': 12.06,
+    'fico': 697
+}, {
+    'rate': 8.74,
+    'fico': 682
+}, {
+    'rate': 11.71,
+    'fico': 672
+}, {
+    'rate': 4.65,
+    'fico': 737
+}, {
+    'rate': 3.37,
+    'fico': 767
+}, {
+    'rate': 15.3,
+    'fico': 667
+}, {
+    'rate': 17.24,
+    'fico': 692
+}, {
+    'rate': 8.87,
+    'fico': 712
+}, {
+    'rate': 10.62,
+    'fico': 642
+}, {
+    'rate': 4.37,
+    'fico': 732
+}, {
+    'rate': 5.07,
+    'fico': 742
+}, {
+    'rate': 14.02,
+    'fico': 712
+}, {
+    'rate': 11.66,
+    'fico': 727
+}, {
+    'rate': 12.56,
+    'fico': 667
+}, {
+    'rate': 4.24,
+    'fico': 727
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 11.08,
+    'fico': 697
+}, {
+    'rate': 14.74,
+    'fico': 672
+}, {
+    'rate': 3.37,
+    'fico': 762
+}, {
+    'rate': 4.65,
+    'fico': 792
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 12.06,
+    'fico': 697
+}, {
+    'rate': 3.89,
+    'fico': 732
+}, {
+    'rate': 7.0,
+    'fico': 722
+}, {
+    'rate': 15.24,
+    'fico': 667
+}, {
+    'rate': 6.63,
+    'fico': 757
+}, {
+    'rate': 16.74,
+    'fico': 662
+}, {
+    'rate': 4.41,
+    'fico': 747
+}, {
+    'rate': 9.86,
+    'fico': 662
+}, {
+    'rate': 16.66,
+    'fico': 662
+}, {
+    'rate': 3.89,
+    'fico': 762
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 13.04,
+    'fico': 667
+}, {
+    'rate': 7.11,
+    'fico': 757
+}, {
+    'rate': 4.37,
+    'fico': 812
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 4.63,
+    'fico': 767
+}, {
+    'rate': 8.87,
+    'fico': 707
+}, {
+    'rate': 15.54,
+    'fico': 692
+}, {
+    'rate': 4.65,
+    'fico': 822
+}, {
+    'rate': 13.15,
+    'fico': 677
+}, {
+    'rate': 8.41,
+    'fico': 687
+}, {
+    'rate': 13.24,
+    'fico': 687
+}, {
+    'rate': 15.0,
+    'fico': 707
+}, {
+    'rate': 13.9,
+    'fico': 672
+}, {
+    'rate': 11.08,
+    'fico': 672
+}, {
+    'rate': 9.43,
+    'fico': 702
+}, {
+    'rate': 10.18,
+    'fico': 692
+}, {
+    'rate': 11.4,
+    'fico': 677
+}, {
+    'rate': 13.04,
+    'fico': 667
+}, {
+    'rate': 13.07,
+    'fico': 682
+}, {
+    'rate': 7.89,
+    'fico': 717
+}, {
+    'rate': 4.63,
+    'fico': 712
+}, {
+    'rate': 16.17,
+    'fico': 687
+}, {
+    'rate': 7.89,
+    'fico': 707
+}, {
+    'rate': 3.37,
+    'fico': 732
+}, {
+    'rate': 4.65,
+    'fico': 732
+}, {
+    'rate': 18.73,
+    'fico': 677
+}, {
+    'rate': 18.73,
+    'fico': 667
+}, {
+    'rate': 14.02,
+    'fico': 697
+}, {
+    'rate': 11.98,
+    'fico': 702
+}, {
+    'rate': 8.58,
+    'fico': 812
+}, {
+    'rate': 10.5,
+    'fico': 642
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 5.69,
+    'fico': 777
+}, {
+    'rate': 8.46,
+    'fico': 682
+}, {
+    'rate': 11.02,
+    'fico': 682
+}, {
+    'rate': 11.4,
+    'fico': 672
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 8.46,
+    'fico': 727
+}, {
+    'rate': 13.04,
+    'fico': 662
+}, {
+    'rate': 10.84,
+    'fico': 697
+}, {
+    'rate': 10.74,
+    'fico': 672
+}, {
+    'rate': 2.78,
+    'fico': 817
+}, {
+    'rate': 8.61,
+    'fico': 732
+}, {
+    'rate': 8.24,
+    'fico': 687
+}, {
+    'rate': 8.87,
+    'fico': 707
+}, {
+    'rate': 7.5,
+    'fico': 707
+}, {
+    'rate': 3.66,
+    'fico': 717
+}, {
+    'rate': 4.37,
+    'fico': 732
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 12.06,
+    'fico': 662
+}, {
+    'rate': 10.42,
+    'fico': 712
+}, {
+    'rate': 13.89,
+    'fico': 682
+}, {
+    'rate': 6.91,
+    'fico': 707
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 4.49,
+    'fico': 777
+}, {
+    'rate': 15.8,
+    'fico': 687
+}, {
+    'rate': 4.63,
+    'fico': 757
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 15.0,
+    'fico': 722
+}, {
+    'rate': 7.89,
+    'fico': 747
+}, {
+    'rate': 5.65,
+    'fico': 737
+}, {
+    'rate': 12.06,
+    'fico': 687
+}, {
+    'rate': 4.37,
+    'fico': 762
+}, {
+    'rate': 11.4,
+    'fico': 687
+}, {
+    'rate': 7.34,
+    'fico': 687
+}, {
+    'rate': 8.74,
+    'fico': 727
+}, {
+    'rate': 14.26,
+    'fico': 697
+}, {
+    'rate': 15.5,
+    'fico': 697
+}, {
+    'rate': 6.91,
+    'fico': 707
+}, {
+    'rate': 4.65,
+    'fico': 777
+}, {
+    'rate': 10.73,
+    'fico': 702
+}, {
+    'rate': 7.89,
+    'fico': 692
+}, {
+    'rate': 4.63,
+    'fico': 717
+}, {
+    'rate': 12.56,
+    'fico': 667
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 10.84,
+    'fico': 692
+}, {
+    'rate': 10.84,
+    'fico': 722
+}, {
+    'rate': 4.65,
+    'fico': 742
+}, {
+    'rate': 19.22,
+    'fico': 672
+}, {
+    'rate': 11.08,
+    'fico': 687
+}, {
+    'rate': 5.65,
+    'fico': 742
+}, {
+    'rate': 14.02,
+    'fico': 702
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 14.02,
+    'fico': 662
+}, {
+    'rate': 8.61,
+    'fico': 732
+}, {
+    'rate': 16.44,
+    'fico': 667
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 10.74,
+    'fico': 702
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 3.37,
+    'fico': 732
+}, {
+    'rate': 10.42,
+    'fico': 712
+}, {
+    'rate': 7.89,
+    'fico': 692
+}, {
+    'rate': 11.4,
+    'fico': 702
+}, {
+    'rate': 7.7,
+    'fico': 752
+}, {
+    'rate': 11.4,
+    'fico': 667
+}, {
+    'rate': 20.58,
+    'fico': 662
+}, {
+    'rate': 12.55,
+    'fico': 692
+}, {
+    'rate': 10.74,
+    'fico': 672
+}, {
+    'rate': 10.73,
+    'fico': 722
+}, {
+    'rate': 11.96,
+    'fico': 697
+}, {
+    'rate': 12.55,
+    'fico': 677
+}, {
+    'rate': 8.23,
+    'fico': 717
+}, {
+    'rate': 12.77,
+    'fico': 712
+}, {
+    'rate': 10.05,
+    'fico': 662
+}, {
+    'rate': 9.99,
+    'fico': 657
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 17.25,
+    'fico': 677
+}, {
+    'rate': 4.24,
+    'fico': 757
+}, {
+    'rate': 5.63,
+    'fico': 727
+}, {
+    'rate': 10.82,
+    'fico': 672
+}, {
+    'rate': 10.67,
+    'fico': 702
+}, {
+    'rate': 4.37,
+    'fico': 772
+}, {
+    'rate': 5.65,
+    'fico': 722
+}, {
+    'rate': 10.84,
+    'fico': 752
+}, {
+    'rate': 6.75,
+    'fico': 807
+}, {
+    'rate': 18.24,
+    'fico': 682
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 7.4,
+    'fico': 712
+}, {
+    'rate': 13.04,
+    'fico': 702
+}, {
+    'rate': 8.46,
+    'fico': 697
+}, {
+    'rate': 10.32,
+    'fico': 682
+}, {
+    'rate': 7.58,
+    'fico': 747
+}, {
+    'rate': 8.74,
+    'fico': 717
+}, {
+    'rate': 4.65,
+    'fico': 712
+}, {
+    'rate': 4.24,
+    'fico': 802
+}, {
+    'rate': 11.21,
+    'fico': 687
+}, {
+    'rate': 13.04,
+    'fico': 697
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 7.49,
+    'fico': 727
+}, {
+    'rate': 9.86,
+    'fico': 662
+}, {
+    'rate': 3.66,
+    'fico': 717
+}, {
+    'rate': 10.84,
+    'fico': 682
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 13.57,
+    'fico': 687
+}, {
+    'rate': 4.65,
+    'fico': 712
+}, {
+    'rate': 9.67,
+    'fico': 662
+}, {
+    'rate': 11.08,
+    'fico': 702
+}, {
+    'rate': 10.74,
+    'fico': 717
+}, {
+    'rate': 4.26,
+    'fico': 757
+}, {
+    'rate': 8.87,
+    'fico': 707
+}, {
+    'rate': 7.4,
+    'fico': 702
+}, {
+    'rate': 6.51,
+    'fico': 697
+}, {
+    'rate': 8.61,
+    'fico': 692
+}, {
+    'rate': 7.74,
+    'fico': 727
+}, {
+    'rate': 8.74,
+    'fico': 742
+}, {
+    'rate': 11.1,
+    'fico': 667
+}, {
+    'rate': 9.86,
+    'fico': 697
+}, {
+    'rate': 8.24,
+    'fico': 752
+}, {
+    'rate': 15.3,
+    'fico': 717
+}, {
+    'rate': 9.86,
+    'fico': 722
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 5.24,
+    'fico': 717
+}, {
+    'rate': 2.78,
+    'fico': 757
+}, {
+    'rate': 4.24,
+    'fico': 742
+}, {
+    'rate': 14.02,
+    'fico': 707
+}, {
+    'rate': 2.78,
+    'fico': 782
+}, {
+    'rate': 12.74,
+    'fico': 702
+}, {
+    'rate': 8.53,
+    'fico': 707
+}, {
+    'rate': 12.7,
+    'fico': 667
+}, {
+    'rate': 3.29,
+    'fico': 757
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 13.64,
+    'fico': 677
+}, {
+    'rate': 13.52,
+    'fico': 687
+}, {
+    'rate': 16.66,
+    'fico': 682
+}, {
+    'rate': 13.57,
+    'fico': 662
+}, {
+    'rate': 15.3,
+    'fico': 672
+}, {
+    'rate': 11.08,
+    'fico': 712
+}, {
+    'rate': 8.46,
+    'fico': 707
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 11.08,
+    'fico': 727
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 7.74,
+    'fico': 702
+}, {
+    'rate': 16.47,
+    'fico': 697
+}, {
+    'rate': 12.33,
+    'fico': 702
+}, {
+    'rate': 14.68,
+    'fico': 672
+}, {
+    'rate': 5.65,
+    'fico': 702
+}, {
+    'rate': 14.02,
+    'fico': 682
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 11.08,
+    'fico': 672
+}, {
+    'rate': 12.55,
+    'fico': 682
+}, {
+    'rate': 7.49,
+    'fico': 722
+}, {
+    'rate': 8.33,
+    'fico': 702
+}, {
+    'rate': 16.49,
+    'fico': 702
+}, {
+    'rate': 11.21,
+    'fico': 692
+}, {
+    'rate': 18.72,
+    'fico': 687
+}, {
+    'rate': 17.05,
+    'fico': 692
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 14.52,
+    'fico': 672
+}, {
+    'rate': 5.65,
+    'fico': 717
+}, {
+    'rate': 3.37,
+    'fico': 747
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 11.4,
+    'fico': 682
+}, {
+    'rate': 4.37,
+    'fico': 807
+}, {
+    'rate': 3.74,
+    'fico': 812
+}, {
+    'rate': 4.37,
+    'fico': 727
+}, {
+    'rate': 10.97,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 687
+}, {
+    'rate': 10.84,
+    'fico': 742
+}, {
+    'rate': 12.55,
+    'fico': 667
+}, {
+    'rate': 2.78,
+    'fico': 807
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 10.67,
+    'fico': 682
+}, {
+    'rate': 4.37,
+    'fico': 732
+}, {
+    'rate': 18.73,
+    'fico': 682
+}, {
+    'rate': 11.8,
+    'fico': 662
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 2.17,
+    'fico': 777
+}, {
+    'rate': 3.74,
+    'fico': 792
+}, {
+    'rate': 15.24,
+    'fico': 677
+}, {
+    'rate': 11.08,
+    'fico': 742
+}, {
+    'rate': 15.54,
+    'fico': 682
+}, {
+    'rate': 7.13,
+    'fico': 717
+}, {
+    'rate': 12.06,
+    'fico': 672
+}, {
+    'rate': 2.78,
+    'fico': 762
+}, {
+    'rate': 8.46,
+    'fico': 712
+}, {
+    'rate': 4.65,
+    'fico': 707
+}, {
+    'rate': 7.74,
+    'fico': 707
+}, {
+    'rate': 13.04,
+    'fico': 672
+}, {
+    'rate': 9.44,
+    'fico': 707
+}, {
+    'rate': 7.74,
+    'fico': 697
+}, {
+    'rate': 12.55,
+    'fico': 692
+}, {
+    'rate': 6.38,
+    'fico': 752
+}, {
+    'rate': 8.53,
+    'fico': 692
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 19.7,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 682
+}, {
+    'rate': 4.63,
+    'fico': 747
+}, {
+    'rate': 9.44,
+    'fico': 732
+}, {
+    'rate': 15.97,
+    'fico': 672
+}, {
+    'rate': 9.62,
+    'fico': 707
+}, {
+    'rate': 4.04,
+    'fico': 727
+}, {
+    'rate': 4.65,
+    'fico': 757
+}, {
+    'rate': 5.24,
+    'fico': 782
+}, {
+    'rate': 9.44,
+    'fico': 732
+}, {
+    'rate': 14.02,
+    'fico': 707
+}, {
+    'rate': 20.95,
+    'fico': 667
+}, {
+    'rate': 12.55,
+    'fico': 672
+}, {
+    'rate': 4.63,
+    'fico': 737
+}, {
+    'rate': 9.86,
+    'fico': 742
+}, {
+    'rate': 7.89,
+    'fico': 692
+}, {
+    'rate': 11.71,
+    'fico': 687
+}, {
+    'rate': 12.71,
+    'fico': 707
+}, {
+    'rate': 7.89,
+    'fico': 717
+}, {
+    'rate': 7.49,
+    'fico': 762
+}, {
+    'rate': 10.42,
+    'fico': 677
+}, {
+    'rate': 8.87,
+    'fico': 717
+}, {
+    'rate': 14.52,
+    'fico': 692
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 3.37,
+    'fico': 747
+}, {
+    'rate': 4.37,
+    'fico': 747
+}, {
+    'rate': 7.89,
+    'fico': 717
+}, {
+    'rate': 17.75,
+    'fico': 662
+}, {
+    'rate': 2.78,
+    'fico': 787
+}, {
+    'rate': 14.33,
+    'fico': 702
+}, {
+    'rate': 10.24,
+    'fico': 682
+}, {
+    'rate': 10.84,
+    'fico': 697
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 9.86,
+    'fico': 707
+}, {
+    'rate': 8.87,
+    'fico': 702
+}, {
+    'rate': 12.06,
+    'fico': 667
+}, {
+    'rate': 9.17,
+    'fico': 697
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 4.65,
+    'fico': 712
+}, {
+    'rate': 14.02,
+    'fico': 662
+}, {
+    'rate': 13.04,
+    'fico': 667
+}, {
+    'rate': 4.65,
+    'fico': 782
+}, {
+    'rate': 13.04,
+    'fico': 717
+}, {
+    'rate': 8.11,
+    'fico': 707
+}, {
+    'rate': 15.24,
+    'fico': 677
+}, {
+    'rate': 20.51,
+    'fico': 702
+}, {
+    'rate': 11.02,
+    'fico': 722
+}, {
+    'rate': 9.17,
+    'fico': 682
+}, {
+    'rate': 15.78,
+    'fico': 682
+}, {
+    'rate': 7.89,
+    'fico': 702
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 4.26,
+    'fico': 762
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 7.13,
+    'fico': 722
+}, {
+    'rate': 7.4,
+    'fico': 737
+}, {
+    'rate': 7.78,
+    'fico': 687
+}, {
+    'rate': 2.78,
+    'fico': 777
+}, {
+    'rate': 14.02,
+    'fico': 677
+}, {
+    'rate': 9.86,
+    'fico': 752
+}, {
+    'rate': 10.55,
+    'fico': 697
+}, {
+    'rate': 3.37,
+    'fico': 757
+}, {
+    'rate': 14.02,
+    'fico': 662
+}, {
+    'rate': 14.24,
+    'fico': 712
+}, {
+    'rate': 15.39,
+    'fico': 702
+}, {
+    'rate': 7.74,
+    'fico': 737
+}, {
+    'rate': 14.02,
+    'fico': 672
+}, {
+    'rate': 3.37,
+    'fico': 817
+}, {
+    'rate': 8.98,
+    'fico': 732
+}, {
+    'rate': 3.66,
+    'fico': 717
+}, {
+    'rate': 8.87,
+    'fico': 702
+}, {
+    'rate': 18.24,
+    'fico': 692
+}, {
+    'rate': 11.08,
+    'fico': 717
+}, {
+    'rate': 11.01,
+    'fico': 687
+}, {
+    'rate': 7.49,
+    'fico': 722
+}, {
+    'rate': 5.63,
+    'fico': 797
+}, {
+    'rate': 8.61,
+    'fico': 707
+}, {
+    'rate': 11.4,
+    'fico': 667
+}, {
+    'rate': 18.24,
+    'fico': 667
+}, {
+    'rate': 19.7,
+    'fico': 667
+}, {
+    'rate': 4.65,
+    'fico': 712
+}, {
+    'rate': 14.63,
+    'fico': 692
+}, {
+    'rate': 9.17,
+    'fico': 677
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 7.12,
+    'fico': 692
+}, {
+    'rate': 11.08,
+    'fico': 697
+}, {
+    'rate': 7.13,
+    'fico': 722
+}, {
+    'rate': 17.75,
+    'fico': 692
+}, {
+    'rate': 8.98,
+    'fico': 717
+}, {
+    'rate': 17.75,
+    'fico': 707
+}, {
+    'rate': 11.08,
+    'fico': 752
+}, {
+    'rate': 14.24,
+    'fico': 667
+}, {
+    'rate': 3.37,
+    'fico': 712
+}, {
+    'rate': 5.24,
+    'fico': 747
+}, {
+    'rate': 15.24,
+    'fico': 687
+}, {
+    'rate': 19.22,
+    'fico': 677
+}, {
+    'rate': 16.74,
+    'fico': 662
+}, {
+    'rate': 14.29,
+    'fico': 657
+}, {
+    'rate': 3.67,
+    'fico': 757
+}, {
+    'rate': 7.49,
+    'fico': 712
+}, {
+    'rate': 3.66,
+    'fico': 712
+}, {
+    'rate': 6.07,
+    'fico': 747
+}, {
+    'rate': 4.24,
+    'fico': 757
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 12.02,
+    'fico': 682
+}, {
+    'rate': 15.24,
+    'fico': 672
+}, {
+    'rate': 2.17,
+    'fico': 782
+}, {
+    'rate': 4.24,
+    'fico': 717
+}, {
+    'rate': 10.24,
+    'fico': 707
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 5.65,
+    'fico': 712
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 5.63,
+    'fico': 712
+}, {
+    'rate': 7.0,
+    'fico': 752
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 13.04,
+    'fico': 707
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 7.34,
+    'fico': 742
+}, {
+    'rate': 4.41,
+    'fico': 702
+}, {
+    'rate': 12.55,
+    'fico': 682
+}, {
+    'rate': 15.8,
+    'fico': 662
+}, {
+    'rate': 7.89,
+    'fico': 707
+}, {
+    'rate': 14.68,
+    'fico': 672
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 15.8,
+    'fico': 692
+}, {
+    'rate': 7.34,
+    'fico': 712
+}, {
+    'rate': 12.06,
+    'fico': 667
+}, {
+    'rate': 6.91,
+    'fico': 712
+}, {
+    'rate': 7.11,
+    'fico': 682
+}, {
+    'rate': 10.36,
+    'fico': 717
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 10.84,
+    'fico': 672
+}, {
+    'rate': 9.86,
+    'fico': 667
+}, {
+    'rate': 9.86,
+    'fico': 692
+}, {
+    'rate': 8.96,
+    'fico': 752
+}, {
+    'rate': 9.44,
+    'fico': 697
+}, {
+    'rate': 6.91,
+    'fico': 707
+}, {
+    'rate': 11.02,
+    'fico': 677
+}, {
+    'rate': 8.87,
+    'fico': 677
+}, {
+    'rate': 4.24,
+    'fico': 742
+}, {
+    'rate': 12.55,
+    'fico': 677
+}, {
+    'rate': 8.24,
+    'fico': 697
+}, {
+    'rate': 10.24,
+    'fico': 692
+}, {
+    'rate': 9.86,
+    'fico': 722
+}, {
+    'rate': 9.86,
+    'fico': 667
+}, {
+    'rate': 4.15,
+    'fico': 807
+}, {
+    'rate': 2.78,
+    'fico': 792
+}, {
+    'rate': 14.02,
+    'fico': 692
+}, {
+    'rate': 7.89,
+    'fico': 717
+}, {
+    'rate': 9.86,
+    'fico': 682
+}, {
+    'rate': 14.31,
+    'fico': 662
+}, {
+    'rate': 2.78,
+    'fico': 772
+}, {
+    'rate': 8.61,
+    'fico': 737
+}, {
+    'rate': 9.81,
+    'fico': 687
+}, {
+    'rate': 7.89,
+    'fico': 737
+}, {
+    'rate': 16.44,
+    'fico': 667
+}, {
+    'rate': 13.94,
+    'fico': 677
+}, {
+    'rate': 4.65,
+    'fico': 737
+}, {
+    'rate': 8.24,
+    'fico': 722
+}, {
+    'rate': 2.78,
+    'fico': 782
+}, {
+    'rate': 4.26,
+    'fico': 737
+}, {
+    'rate': 9.86,
+    'fico': 692
+}, {
+    'rate': 14.33,
+    'fico': 667
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 9.86,
+    'fico': 757
+}, {
+    'rate': 8.87,
+    'fico': 672
+}, {
+    'rate': 11.4,
+    'fico': 672
+}, {
+    'rate': 4.65,
+    'fico': 752
+}, {
+    'rate': 6.75,
+    'fico': 747
+}, {
+    'rate': 4.24,
+    'fico': 717
+}, {
+    'rate': 9.86,
+    'fico': 692
+}, {
+    'rate': 4.65,
+    'fico': 797
+}, {
+    'rate': 17.24,
+    'fico': 667
+}, {
+    'rate': 11.58,
+    'fico': 677
+}, {
+    'rate': 11.08,
+    'fico': 672
+}, {
+    'rate': 7.4,
+    'fico': 747
+}, {
+    'rate': 2.78,
+    'fico': 807
+}, {
+    'rate': 3.37,
+    'fico': 737
+}, {
+    'rate': 13.04,
+    'fico': 722
+}, {
+    'rate': 2.78,
+    'fico': 772
+}, {
+    'rate': 15.39,
+    'fico': 672
+}, {
+    'rate': 4.24,
+    'fico': 752
+}, {
+    'rate': 17.75,
+    'fico': 697
+}, {
+    'rate': 14.24,
+    'fico': 727
+}, {
+    'rate': 13.64,
+    'fico': 682
+}, {
+    'rate': 9.17,
+    'fico': 732
+}, {
+    'rate': 10.54,
+    'fico': 682
+}, {
+    'rate': 10.24,
+    'fico': 777
+}, {
+    'rate': 14.74,
+    'fico': 667
+}, {
+    'rate': 10.24,
+    'fico': 677
+}, {
+    'rate': 2.17,
+    'fico': 797
+}, {
+    'rate': 10.84,
+    'fico': 682
+}, {
+    'rate': 18.73,
+    'fico': 667
+}, {
+    'rate': 4.37,
+    'fico': 742
+}, {
+    'rate': 2.78,
+    'fico': 787
+}, {
+    'rate': 10.74,
+    'fico': 667
+}, {
+    'rate': 6.74,
+    'fico': 802
+}, {
+    'rate': 14.02,
+    'fico': 757
+}, {
+    'rate': 15.24,
+    'fico': 667
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 13.04,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 667
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 9.17,
+    'fico': 747
+}, {
+    'rate': 10.42,
+    'fico': 697
+}, {
+    'rate': 10.74,
+    'fico': 682
+}, {
+    'rate': 9.98,
+    'fico': 687
+}, {
+    'rate': 11.08,
+    'fico': 672
+}, {
+    'rate': 8.87,
+    'fico': 677
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 14.02,
+    'fico': 662
+}, {
+    'rate': 18.02,
+    'fico': 672
+}, {
+    'rate': 16.47,
+    'fico': 667
+}, {
+    'rate': 6.74,
+    'fico': 767
+}, {
+    'rate': 11.8,
+    'fico': 662
+}, {
+    'rate': 7.89,
+    'fico': 707
+}, {
+    'rate': 11.08,
+    'fico': 687
+}, {
+    'rate': 7.89,
+    'fico': 692
+}, {
+    'rate': 5.65,
+    'fico': 777
+}, {
+    'rate': 18.73,
+    'fico': 672
+}, {
+    'rate': 4.65,
+    'fico': 707
+}, {
+    'rate': 10.24,
+    'fico': 682
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 11.58,
+    'fico': 682
+}, {
+    'rate': 9.86,
+    'fico': 707
+}, {
+    'rate': 5.65,
+    'fico': 727
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 9.86,
+    'fico': 692
+}, {
+    'rate': 7.87,
+    'fico': 712
+}, {
+    'rate': 7.49,
+    'fico': 722
+}, {
+    'rate': 14.02,
+    'fico': 667
+}, {
+    'rate': 20.58,
+    'fico': 662
+}, {
+    'rate': 12.02,
+    'fico': 702
+}, {
+    'rate': 14.24,
+    'fico': 672
+}, {
+    'rate': 7.89,
+    'fico': 717
+}, {
+    'rate': 6.91,
+    'fico': 702
+}, {
+    'rate': 13.57,
+    'fico': 667
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 10.74,
+    'fico': 682
+}, {
+    'rate': 4.65,
+    'fico': 817
+}, {
+    'rate': 4.26,
+    'fico': 757
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 9.62,
+    'fico': 717
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 14.02,
+    'fico': 687
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 7.49,
+    'fico': 692
+}, {
+    'rate': 15.0,
+    'fico': 662
+}, {
+    'rate': 2.54,
+    'fico': 752
+}, {
+    'rate': 9.86,
+    'fico': 797
+}, {
+    'rate': 5.65,
+    'fico': 687
+}, {
+    'rate': 2.78,
+    'fico': 797
+}, {
+    'rate': 17.05,
+    'fico': 667
+}, {
+    'rate': 4.24,
+    'fico': 732
+}, {
+    'rate': 9.86,
+    'fico': 742
+}, {
+    'rate': 17.24,
+    'fico': 677
+}, {
+    'rate': 4.24,
+    'fico': 722
+}, {
+    'rate': 4.24,
+    'fico': 712
+}, {
+    'rate': 6.38,
+    'fico': 707
+}, {
+    'rate': 14.02,
+    'fico': 702
+}, {
+    'rate': 12.06,
+    'fico': 692
+}, {
+    'rate': 15.14,
+    'fico': 707
+}, {
+    'rate': 7.89,
+    'fico': 692
+}, {
+    'rate': 19.22,
+    'fico': 662
+}, {
+    'rate': 18.73,
+    'fico': 697
+}, {
+    'rate': 18.24,
+    'fico': 677
+}, {
+    'rate': 6.38,
+    'fico': 697
+}, {
+    'rate': 16.74,
+    'fico': 662
+}, {
+    'rate': 11.08,
+    'fico': 692
+}, {
+    'rate': 15.24,
+    'fico': 662
+}, {
+    'rate': 4.24,
+    'fico': 742
+}, {
+    'rate': 9.86,
+    'fico': 722
+}, {
+    'rate': 10.18,
+    'fico': 672
+}, {
+    'rate': 5.65,
+    'fico': 702
+}, {
+    'rate': 2.78,
+    'fico': 737
+}, {
+    'rate': 9.36,
+    'fico': 697
+}, {
+    'rate': 6.0,
+    'fico': 707
+}, {
+    'rate': 16.44,
+    'fico': 667
+}, {
+    'rate': 8.87,
+    'fico': 687
+}, {
+    'rate': 15.04,
+    'fico': 642
+}, {
+    'rate': 7.89,
+    'fico': 702
+}, {
+    'rate': 2.74,
+    'fico': 767
+}, {
+    'rate': 8.46,
+    'fico': 747
+}, {
+    'rate': 15.24,
+    'fico': 662
+}, {
+    'rate': 9.17,
+    'fico': 692
+}, {
+    'rate': 8.46,
+    'fico': 722
+}, {
+    'rate': 8.74,
+    'fico': 707
+}, {
+    'rate': 9.98,
+    'fico': 732
+}, {
+    'rate': 9.86,
+    'fico': 677
+}, {
+    'rate': 15.24,
+    'fico': 677
+}, {
+    'rate': 4.43,
+    'fico': 787
+}, {
+    'rate': 3.89,
+    'fico': 757
+}, {
+    'rate': 7.89,
+    'fico': 687
+}, {
+    'rate': 5.65,
+    'fico': 742
+}, {
+    'rate': 17.24,
+    'fico': 717
+}, {
+    'rate': 5.24,
+    'fico': 797
+}, {
+    'rate': 14.02,
+    'fico': 677
+}, {
+    'rate': 4.26,
+    'fico': 742
+}, {
+    'rate': 11.71,
+    'fico': 762
+}, {
+    'rate': 3.29,
+    'fico': 727
+}, {
+    'rate': 3.37,
+    'fico': 752
+}, {
+    'rate': 2.78,
+    'fico': 802
+}, {
+    'rate': 7.74,
+    'fico': 762
+}, {
+    'rate': 7.78,
+    'fico': 697
+}, {
+    'rate': 17.24,
+    'fico': 702
+}, {
+    'rate': 17.24,
+    'fico': 687
+}, {
+    'rate': 10.73,
+    'fico': 697
+}, {
+    'rate': 12.55,
+    'fico': 677
+}, {
+    'rate': 5.69,
+    'fico': 787
+}, {
+    'rate': 10.05,
+    'fico': 662
+}, {
+    'rate': 11.4,
+    'fico': 677
+}, {
+    'rate': 18.86,
+    'fico': 662
+}, {
+    'rate': 4.37,
+    'fico': 767
+}, {
+    'rate': 17.75,
+    'fico': 682
+}, {
+    'rate': 9.81,
+    'fico': 707
+}, {
+    'rate': 9.86,
+    'fico': 672
+}, {
+    'rate': 14.52,
+    'fico': 672
+}, {
+    'rate': 9.86,
+    'fico': 707
+}, {
+    'rate': 15.97,
+    'fico': 677
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 10.24,
+    'fico': 732
+}, {
+    'rate': 11.08,
+    'fico': 672
+}, {
+    'rate': 4.24,
+    'fico': 722
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 7.74,
+    'fico': 707
+}, {
+    'rate': 15.0,
+    'fico': 662
+}, {
+    'rate': 8.96,
+    'fico': 697
+}, {
+    'rate': 2.78,
+    'fico': 767
+}, {
+    'rate': 11.08,
+    'fico': 682
+}, {
+    'rate': 14.52,
+    'fico': 687
+}, {
+    'rate': 7.86,
+    'fico': 767
+}, {
+    'rate': 4.65,
+    'fico': 712
+}, {
+    'rate': 17.0,
+    'fico': 697
+}, {
+    'rate': 11.4,
+    'fico': 697
+}, {
+    'rate': 12.02,
+    'fico': 672
+}, {
+    'rate': 7.37,
+    'fico': 747
+}, {
+    'rate': 8.11,
+    'fico': 707
+}, {
+    'rate': 3.37,
+    'fico': 737
+}, {
+    'rate': 6.38,
+    'fico': 757
+}, {
+    'rate': 15.97,
+    'fico': 692
+}, {
+    'rate': 20.51,
+    'fico': 662
+}, {
+    'rate': 2.74,
+    'fico': 782
+}, {
+    'rate': 7.74,
+    'fico': 737
+}, {
+    'rate': 10.42,
+    'fico': 682
+}, {
+    'rate': 9.43,
+    'fico': 702
+}, {
+    'rate': 14.52,
+    'fico': 667
+}, {
+    'rate': 4.65,
+    'fico': 707
+}, {
+    'rate': 8.46,
+    'fico': 677
+}, {
+    'rate': 10.42,
+    'fico': 687
+}, {
+    'rate': 8.24,
+    'fico': 697
+}, {
+    'rate': 13.89,
+    'fico': 662
+}, {
+    'rate': 20.03,
+    'fico': 662
+}, {
+    'rate': 14.68,
+    'fico': 692
+}, {
+    'rate': 11.02,
+    'fico': 697
+}, {
+    'rate': 10.74,
+    'fico': 682
+}, {
+    'rate': 14.52,
+    'fico': 662
+}, {
+    'rate': 7.5,
+    'fico': 797
+}, {
+    'rate': 7.89,
+    'fico': 722
+}, {
+    'rate': 4.26,
+    'fico': 752
+}, {
+    'rate': 14.02,
+    'fico': 732
+}, {
+    'rate': 9.86,
+    'fico': 702
+}, {
+    'rate': 13.04,
+    'fico': 697
+}, {
+    'rate': 11.08,
+    'fico': 667
+}, {
+    'rate': 12.55,
+    'fico': 692
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 17.75,
+    'fico': 687
+}, {
+    'rate': 8.46,
+    'fico': 692
+}, {
+    'rate': 10.97,
+    'fico': 667
+}, {
+    'rate': 5.34,
+    'fico': 737
+}, {
+    'rate': 12.55,
+    'fico': 672
+}, {
+    'rate': 5.24,
+    'fico': 722
+}, {
+    'rate': 18.24,
+    'fico': 672
+}, {
+    'rate': 7.5,
+    'fico': 712
+}, {
+    'rate': 15.5,
+    'fico': 712
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 15.0,
+    'fico': 677
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 9.92,
+    'fico': 677
+}, {
+    'rate': 13.57,
+    'fico': 682
+}, {
+    'rate': 4.65,
+    'fico': 762
+}, {
+    'rate': 6.38,
+    'fico': 732
+}, {
+    'rate': 9.98,
+    'fico': 737
+}, {
+    'rate': 8.64,
+    'fico': 747
+}, {
+    'rate': 7.5,
+    'fico': 777
+}, {
+    'rate': 2.78,
+    'fico': 752
+}, {
+    'rate': 17.24,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 697
+}, {
+    'rate': 8.46,
+    'fico': 687
+}, {
+    'rate': 13.04,
+    'fico': 672
+}, {
+    'rate': 6.38,
+    'fico': 762
+}, {
+    'rate': 9.44,
+    'fico': 702
+}, {
+    'rate': 5.65,
+    'fico': 737
+}, {
+    'rate': 7.89,
+    'fico': 707
+}, {
+    'rate': 6.51,
+    'fico': 727
+}, {
+    'rate': 8.64,
+    'fico': 737
+}, {
+    'rate': 10.74,
+    'fico': 682
+}, {
+    'rate': 12.56,
+    'fico': 677
+}, {
+    'rate': 11.49,
+    'fico': 697
+}, {
+    'rate': 5.82,
+    'fico': 742
+}, {
+    'rate': 10.74,
+    'fico': 672
+}, {
+    'rate': 8.24,
+    'fico': 697
+}, {
+    'rate': 15.5,
+    'fico': 697
+}, {
+    'rate': 17.24,
+    'fico': 687
+}, {
+    'rate': 7.89,
+    'fico': 702
+}, {
+    'rate': 10.42,
+    'fico': 692
+}, {
+    'rate': 14.74,
+    'fico': 677
+}, {
+    'rate': 12.06,
+    'fico': 677
+}, {
+    'rate': 16.47,
+    'fico': 667
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 14.52,
+    'fico': 662
+}, {
+    'rate': 10.86,
+    'fico': 672
+}, {
+    'rate': 14.02,
+    'fico': 662
+}, {
+    'rate': 17.24,
+    'fico': 662
+}, {
+    'rate': 8.74,
+    'fico': 722
+}, {
+    'rate': 14.33,
+    'fico': 707
+}, {
+    'rate': 12.56,
+    'fico': 672
+}, {
+    'rate': 13.04,
+    'fico': 722
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 11.8,
+    'fico': 667
+}, {
+    'rate': 13.04,
+    'fico': 667
+}, {
+    'rate': 14.26,
+    'fico': 682
+}, {
+    'rate': 2.78,
+    'fico': 797
+}, {
+    'rate': 8.64,
+    'fico': 727
+}, {
+    'rate': 5.65,
+    'fico': 697
+}, {
+    'rate': 4.65,
+    'fico': 767
+}, {
+    'rate': 9.17,
+    'fico': 672
+}, {
+    'rate': 5.69,
+    'fico': 742
+}, {
+    'rate': 9.28,
+    'fico': 697
+}, {
+    'rate': 13.04,
+    'fico': 707
+}, {
+    'rate': 8.87,
+    'fico': 692
+}, {
+    'rate': 9.17,
+    'fico': 717
+}, {
+    'rate': 8.46,
+    'fico': 697
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 2.78,
+    'fico': 772
+}, {
+    'rate': 11.02,
+    'fico': 717
+}, {
+    'rate': 9.17,
+    'fico': 747
+}, {
+    'rate': 9.86,
+    'fico': 672
+}, {
+    'rate': 10.74,
+    'fico': 672
+}, {
+    'rate': 9.67,
+    'fico': 672
+}, {
+    'rate': 13.04,
+    'fico': 697
+}, {
+    'rate': 11.01,
+    'fico': 722
+}, {
+    'rate': 8.74,
+    'fico': 712
+}, {
+    'rate': 17.24,
+    'fico': 662
+}, {
+    'rate': 2.54,
+    'fico': 752
+}, {
+    'rate': 9.43,
+    'fico': 787
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 5.65,
+    'fico': 722
+}, {
+    'rate': 15.39,
+    'fico': 697
+}, {
+    'rate': 5.24,
+    'fico': 732
+}, {
+    'rate': 8.24,
+    'fico': 722
+}, {
+    'rate': 15.24,
+    'fico': 667
+}, {
+    'rate': 12.77,
+    'fico': 662
+}, {
+    'rate': 10.24,
+    'fico': 727
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 4.65,
+    'fico': 747
+}, {
+    'rate': 11.08,
+    'fico': 682
+}, {
+    'rate': 12.55,
+    'fico': 702
+}, {
+    'rate': 5.34,
+    'fico': 812
+}, {
+    'rate': 12.06,
+    'fico': 682
+}, {
+    'rate': 4.43,
+    'fico': 782
+}, {
+    'rate': 14.52,
+    'fico': 677
+}, {
+    'rate': 11.36,
+    'fico': 667
+}, {
+    'rate': 11.08,
+    'fico': 692
+}, {
+    'rate': 3.37,
+    'fico': 752
+}, {
+    'rate': 3.74,
+    'fico': 782
+}, {
+    'rate': 11.66,
+    'fico': 692
+}, {
+    'rate': 9.86,
+    'fico': 692
+}, {
+    'rate': 4.66,
+    'fico': 727
+}, {
+    'rate': 10.47,
+    'fico': 707
+}, {
+    'rate': 10.24,
+    'fico': 692
+}, {
+    'rate': 16.16,
+    'fico': 662
+}, {
+    'rate': 10.84,
+    'fico': 692
+}, {
+    'rate': 9.28,
+    'fico': 702
+}, {
+    'rate': 7.12,
+    'fico': 707
+}, {
+    'rate': 3.37,
+    'fico': 807
+}, {
+    'rate': 8.87,
+    'fico': 682
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 4.37,
+    'fico': 807
+}, {
+    'rate': 11.71,
+    'fico': 732
+}, {
+    'rate': 16.47,
+    'fico': 697
+}, {
+    'rate': 15.0,
+    'fico': 667
+}, {
+    'rate': 7.12,
+    'fico': 787
+}, {
+    'rate': 8.96,
+    'fico': 697
+}, {
+    'rate': 11.08,
+    'fico': 672
+}, {
+    'rate': 15.0,
+    'fico': 727
+}, {
+    'rate': 4.49,
+    'fico': 737
+}, {
+    'rate': 8.24,
+    'fico': 717
+}, {
+    'rate': 19.2,
+    'fico': 662
+}, {
+    'rate': 11.02,
+    'fico': 682
+}, {
+    'rate': 6.66,
+    'fico': 712
+}, {
+    'rate': 4.26,
+    'fico': 767
+}, {
+    'rate': 4.65,
+    'fico': 727
+}, {
+    'rate': 6.51,
+    'fico': 707
+}, {
+    'rate': 2.78,
+    'fico': 727
+}, {
+    'rate': 12.02,
+    'fico': 672
+}, {
+    'rate': 13.04,
+    'fico': 712
+}, {
+    'rate': 10.42,
+    'fico': 712
+}, {
+    'rate': 8.87,
+    'fico': 712
+}, {
+    'rate': 13.58,
+    'fico': 682
+}, {
+    'rate': 16.47,
+    'fico': 667
+}, {
+    'rate': 4.04,
+    'fico': 742
+}, {
+    'rate': 8.58,
+    'fico': 757
+}, {
+    'rate': 9.44,
+    'fico': 712
+}, {
+    'rate': 8.87,
+    'fico': 697
+}, {
+    'rate': 2.78,
+    'fico': 777
+}, {
+    'rate': 9.17,
+    'fico': 707
+}, {
+    'rate': 14.26,
+    'fico': 697
+}, {
+    'rate': 8.87,
+    'fico': 677
+}, {
+    'rate': 17.64,
+    'fico': 697
+}, {
+    'rate': 14.52,
+    'fico': 677
+}, {
+    'rate': 15.78,
+    'fico': 662
+}, {
+    'rate': 4.63,
+    'fico': 802
+}, {
+    'rate': 10.84,
+    'fico': 752
+}, {
+    'rate': 15.78,
+    'fico': 682
+}, {
+    'rate': 5.69,
+    'fico': 817
+}, {
+    'rate': 10.74,
+    'fico': 747
+}, {
+    'rate': 9.44,
+    'fico': 707
+}, {
+    'rate': 10.92,
+    'fico': 692
+}, {
+    'rate': 10.68,
+    'fico': 662
+}, {
+    'rate': 10.84,
+    'fico': 692
+}, {
+    'rate': 10.42,
+    'fico': 707
+}, {
+    'rate': 3.67,
+    'fico': 727
+}, {
+    'rate': 8.87,
+    'fico': 677
+}, {
+    'rate': 7.89,
+    'fico': 712
+}, {
+    'rate': 19.22,
+    'fico': 677
+}, {
+    'rate': 3.74,
+    'fico': 777
+}, {
+    'rate': 2.78,
+    'fico': 792
+}, {
+    'rate': 17.24,
+    'fico': 712
+}, {
+    'rate': 7.74,
+    'fico': 742
+}, {
+    'rate': 5.65,
+    'fico': 737
+}, {
+    'rate': 21.64,
+    'fico': 662
+}, {
+    'rate': 12.71,
+    'fico': 662
+}, {
+    'rate': 7.34,
+    'fico': 732
+}, {
+    'rate': 15.3,
+    'fico': 662
+}, {
+    'rate': 10.86,
+    'fico': 682
+}, {
+    'rate': 15.24,
+    'fico': 672
+}, {
+    'rate': 8.46,
+    'fico': 697
+}, {
+    'rate': 2.54,
+    'fico': 762
+}, {
+    'rate': 19.53,
+    'fico': 667
+}, {
+    'rate': 4.63,
+    'fico': 722
+}, {
+    'rate': 14.52,
+    'fico': 672
+}, {
+    'rate': 10.84,
+    'fico': 667
+}, {
+    'rate': 15.24,
+    'fico': 662
+}, {
+    'rate': 17.24,
+    'fico': 692
+}, {
+    'rate': 10.24,
+    'fico': 747
+}, {
+    'rate': 14.52,
+    'fico': 672
+}, {
+    'rate': 15.8,
+    'fico': 662
+}, {
+    'rate': 17.75,
+    'fico': 677
+}, {
+    'rate': 8.24,
+    'fico': 702
+}, {
+    'rate': 6.91,
+    'fico': 697
+}, {
+    'rate': 11.08,
+    'fico': 702
+}, {
+    'rate': 17.27,
+    'fico': 677
+}, {
+    'rate': 11.54,
+    'fico': 712
+}, {
+    'rate': 6.63,
+    'fico': 752
+}, {
+    'rate': 9.86,
+    'fico': 687
+}, {
+    'rate': 14.02,
+    'fico': 667
+}, {
+    'rate': 15.05,
+    'fico': 692
+}, {
+    'rate': 9.43,
+    'fico': 707
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 11.34,
+    'fico': 662
+}, {
+    'rate': 3.37,
+    'fico': 752
+}, {
+    'rate': 5.65,
+    'fico': 727
+}, {
+    'rate': 5.65,
+    'fico': 742
+}, {
+    'rate': 15.24,
+    'fico': 717
+}, {
+    'rate': 15.79,
+    'fico': 682
+}, {
+    'rate': 19.7,
+    'fico': 667
+}, {
+    'rate': 11.54,
+    'fico': 712
+}, {
+    'rate': 12.75,
+    'fico': 667
+}, {
+    'rate': 4.65,
+    'fico': 767
+}, {
+    'rate': 6.91,
+    'fico': 782
+}, {
+    'rate': 15.39,
+    'fico': 682
+}, {
+    'rate': 13.04,
+    'fico': 692
+}, {
+    'rate': 14.02,
+    'fico': 712
+}, {
+    'rate': 9.97,
+    'fico': 707
+}, {
+    'rate': 10.6,
+    'fico': 687
+}, {
+    'rate': 7.89,
+    'fico': 722
+}, {
+    'rate': 10.84,
+    'fico': 712
+}, {
+    'rate': 4.65,
+    'fico': 722
+}, {
+    'rate': 8.24,
+    'fico': 692
+}, {
+    'rate': 4.65,
+    'fico': 737
+}, {
+    'rate': 10.42,
+    'fico': 687
+}, {
+    'rate': 2.78,
+    'fico': 757
+}, {
+    'rate': 19.22,
+    'fico': 672
+}, {
+    'rate': 4.04,
+    'fico': 732
+}, {
+    'rate': 4.04,
+    'fico': 717
+}, {
+    'rate': 7.49,
+    'fico': 757
+}, {
+    'rate': 19.7,
+    'fico': 667
+}, {
+    'rate': 4.65,
+    'fico': 772
+}, {
+    'rate': 19.2,
+    'fico': 687
+}, {
+    'rate': 11.88,
+    'fico': 652
+}, {
+    'rate': 15.5,
+    'fico': 662
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 10.84,
+    'fico': 677
+}, {
+    'rate': 5.65,
+    'fico': 732
+}, {
+    'rate': 8.46,
+    'fico': 727
+}, {
+    'rate': 12.55,
+    'fico': 682
+}, {
+    'rate': 2.78,
+    'fico': 762
+}, {
+    'rate': 3.37,
+    'fico': 812
+}, {
+    'rate': 4.26,
+    'fico': 722
+}, {
+    'rate': 11.08,
+    'fico': 677
+}, {
+    'rate': 6.91,
+    'fico': 692
+}, {
+    'rate': 7.5,
+    'fico': 767
+}, {
+    'rate': 14.02,
+    'fico': 667
+}, {
+    'rate': 16.74,
+    'fico': 662
+}, {
+    'rate': 12.56,
+    'fico': 687
+}, {
+    'rate': 15.5,
+    'fico': 672
+}, {
+    'rate': 8.46,
+    'fico': 712
+}, {
+    'rate': 4.37,
+    'fico': 722
+}, {
+    'rate': 6.83,
+    'fico': 712
+}, {
+    'rate': 20.03,
+    'fico': 677
+}, {
+    'rate': 11.4,
+    'fico': 687
+}, {
+    'rate': 13.52,
+    'fico': 707
+}, {
+    'rate': 10.84,
+    'fico': 742
+}, {
+    'rate': 10.74,
+    'fico': 682
+}, {
+    'rate': 9.17,
+    'fico': 677
+}, {
+    'rate': 10.54,
+    'fico': 672
+}]
