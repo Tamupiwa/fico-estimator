@@ -1,6 +1,6 @@
 # fico-estimator
 
-Foobar is a Python library library for getting an aproximate fico score using a prescribed interest rate.
+Fico-estimator is a Python library library for getting an aproximate fico score using a prescribed interest rate.
 It is trained using 8,000 loans from Lending Clubs Marketplace. The code also includes a scraper for
 collecting new loan data for further training and experimenting by adding other variables to the regression.
 
@@ -15,7 +15,7 @@ pip install fico-estimator
 ## Usage
 
 ```python
-import ffico-estimator as fe
+import fico-estimator as fe
 
 fe.estimate_fico(rate)
 ```
