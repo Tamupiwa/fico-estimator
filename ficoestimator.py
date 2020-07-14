@@ -14,10 +14,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+path = os.path.realpath(__file__)
 #iterates all the html documents in folder, scrapes each one and combines into one list record
 def main():
     master_data = []
-    directory = '/Users/tamupiwadimairo/Desktop/LendingClubLoans/Html'
+    directory =  path + 'LendingClubLoans/Html'
     for file in os.listdir(directory):
         with open(os.path.join(directory, file)) as page:
             data = scrape(page)
@@ -62,7 +63,7 @@ def format(data):
 #same as above but formats csv file
 def format_csv():
     formated = []
-    with open('/Users/tamupiwadimairo/Desktop/LendingClubLoans/Csv/LendingClub2014.csv') as file:
+    with open(path + 'LendingClubLoans/Csv/LendingClub2014.csv') as file:
         reader = csv.reader(file, delimiter=',', quotechar='|')
         for i, row in enuemrate(reader):
             #skip the header row
@@ -79,7 +80,7 @@ def format_csv():
             mean_fico = (ranges[1] + ranges[0]) / 2
             formated.append({'rate': rate, 'fico': mean_fico})
     #create new csv file with formated data
-    with open('/Users/tamupiwadimairo/Desktop/LendingClubLoans/Csv/formatedLendingClub2014.csv', mode='w') as file:
+    with open(path + '/LendingClubLoans/Csv/formatedLendingClub2014.csv', mode='w') as file:
         writer = csv.DictWriter(file, fieldnames = ['rate', 'fico'], delimiter = ',')
         writer.writeheader()
         for f in formated:
@@ -88,7 +89,7 @@ def format_csv():
 #trains the linear regression model using scikit-learn
 #returns the bias and coeficient
 def train(data):
-    dataset = pd.read_csv('/Users/tamupiwadimairo/Desktop/AllLendingClubData.csv')
+    dataset = pd.read_csv(path + '/AllLendingClubData.csv')
     X = dataset.iloc[:,-1].values
     y = dataset.iloc[:,1].values
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
