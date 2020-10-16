@@ -19,8 +19,6 @@ import numpy
 import pandas
 ```
 
-sklearn
-Beatiful
 ## Usage
 
 ```python
@@ -29,11 +27,11 @@ import fico-estimator as fe
 #get a fico estimate
 fe.predict_fico(rate)
 
-#get lending club loan data from marketplace
-fe.scrape(html)
-
 #train using the new data. Returns regression intercept and coeficient (y = mx + b)
 fe.train(data)
+
+#get lending club loan data from marketplace
+fe.scrape(html)
 ```
 
 ## Contributing
