@@ -1,8 +1,7 @@
 # fico-estimator
 
-Fico-estimator is a Python =library for getting an aproximate fico score using a prescribed interest rate.
-It is trained using 8,000 loans from Lending Clubs Marketplace. The library also includes a scraper for
-collecting new loan data for further training and experimenting by adding other variables to the regression.
+Fico-estimator is a Python library for estimating fico scores using an interest rate.
+It is trained using 8,000 loans from Lending Clubs Marketplace and normalized to include to exclude any changes in the Federal Reserve prime rate. The library also includes a scraper for collecting new loan data to further training and experiment by adding other variables to the regression.
 
 ## Installation
 
