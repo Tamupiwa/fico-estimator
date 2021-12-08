@@ -1,6 +1,6 @@
 # fico-estimator
 
-Fico-estimator is a ML model for estimating fico scores using the interest rate of an applicants recent loan. The library provides a guestimate instead of having to request a credit check. It is trained using 8,000 loans from Lending Clubs Marketplace and normalized to exclude any changes in the Federal Reserve prime rate. The library also includes a scraper for collecting new loan data to further training and experiment by adding other variables to the regression. Predicted scores are within 50 points of accuracy. 
+Fico-estimator is a ML model for estimating fico scores using the interest rate of an applicants recent loan. The library provides a guestimate instead of having to request a credit check. It is trained using 8,000 loans from Lending Clubs Marketplace and normalized to exclude any changes in the Federal Reserve prime rate. The library also includes a scraper for collecting new loan data to further training and experiment by adding other variables to the regression. Predicted scores are within 70 points of accuracy. 
 ## Installation
 
 Use the package manager [pip] Only compatable with python 2.7
