@@ -28,7 +28,7 @@ fe.predict(rate)
 #get lending club loan data from marketplace
 fe.scrape(html)
 
-#improve the modeling by training it with external data
+#train the model with new data (see csv file for required format)
 fe.train(data)
 
 ```
