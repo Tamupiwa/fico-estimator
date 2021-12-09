@@ -12,28 +12,10 @@ class Estimator:
     #values from pretrained model
     int = 759.9175579736204
     coef = -5.40286175
+    prime_rate = 5
 
     def __init__(self):
         path = os.path.realpath(__file__)
-    
-    #make predictions of FICO score using interest rates
-    #and coefficient/bias from train function.
-    def predict(rate):
-        fico = (rate*self.coef) + self.int
-        return fico
-    
-        #trains the linear regression model using scikit-learn
-    #path is the path to the csv data
-    def train(path):
-        dataset = pd.read_csv(path)
-        X = dataset.iloc[:,-1].values
-        y = dataset.iloc[:,1].values
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
-        regressor.fit(X_train, y_train)
-        self.int = regressor.intercept_
-        self.coef = regressor.coef_
-        
-   #----- Tools for scraping data from the lendingclubs marketplace ------ #
 
     #iterates all the html documents in folder, scrapes each one and combines into one list record
     def all_data():
@@ -55,7 +37,7 @@ class Estimator:
       for l in loans:
           rate = l.find_all('strong', class_='rate')[0].contents[0]
           fico = l.find_all('div', class_='ficoDisplay')[0].contents[0]
-          data.append({'lender': 'lending club', 'rate': rate, 'fico': fico, 'prime_rate':5.00})
+          data.append({'lender': 'lending club', 'rate': rate, 'fico': fico, 'prime_rate':self.prime_rate})
 
       formated_data = self.format(data)
       return formated_data
@@ -64,7 +46,7 @@ class Estimator:
     def format(data):
         new_data = []
         for d in data:
-            new_d = {'lender': 'lending club', 'prime_rate': 5.00}
+            new_d = {'lender': 'lending club', 'prime_rate': self.prime_rate}
             #remove latin1 encoding
             new_rate = d['rate'].strip(u' \xa0')
             #remove the percentage sign
@@ -102,7 +84,6 @@ class Estimator:
                 ranges = [int(r) for r in ranges]
                 mean_fico = (ranges[1] + ranges[0]) / 2
                 formated.append({'rate': rate, 'fico': mean_fico})
-                
         #create new csv file with formated data
         with open(self.path + '/LendingClubLoans/Csv/formatedLendingClub2014.csv', mode='w') as file:
             writer = csv.DictWriter(file, fieldnames = ['rate', 'fico'], delimiter = ',')
@@ -110,3 +91,19 @@ class Estimator:
             for f in formated:
                 writer.writerow(f)
 
+    #trains the linear regression model using scikit-learn
+    #path is the path to the csv data
+    def train(path):
+        dataset = pd.read_csv(path)
+        X = dataset.iloc[:,-1].values
+        y = dataset.iloc[:,1].values
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+        regressor.fit(X_train, y_train)
+        self.int = regressor.intercept_
+        self.coef = regressor.coef_
+
+    #make predictions of FICO score using interest rates
+    #and coefficient/bias from train function.
+    def predict(rate):
+        fico = (rate*self.coef) + self.int
+        return fico
