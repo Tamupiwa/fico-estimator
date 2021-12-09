@@ -29,7 +29,7 @@ fe.predict(rate)
 fe.scrape(html)
 
 #train the model with new data (fico, rate csv format)
-#Note: data should be normalized 
+#Note: include a prime_rate when initalizing the estimator to normalize the data before training
 fe.train(data)
 
 ```
