@@ -15,6 +15,25 @@ class Estimator:
 
     def __init__(self):
         path = os.path.realpath(__file__)
+    
+    #make predictions of FICO score using interest rates
+    #and coefficient/bias from train function.
+    def predict(rate):
+        fico = (rate*self.coef) + self.int
+        return fico
+    
+        #trains the linear regression model using scikit-learn
+    #path is the path to the csv data
+    def train(path):
+        dataset = pd.read_csv(path)
+        X = dataset.iloc[:,-1].values
+        y = dataset.iloc[:,1].values
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+        regressor.fit(X_train, y_train)
+        self.int = regressor.intercept_
+        self.coef = regressor.coef_
+        
+   #----- Tools for scraping data from the lendingclubs marketplace ------ #
 
     #iterates all the html documents in folder, scrapes each one and combines into one list record
     def all_data():
@@ -90,19 +109,3 @@ class Estimator:
             for f in formated:
                 writer.writerow(f)
 
-    #trains the linear regression model using scikit-learn
-    #path is the path to the csv data
-    def train(path):
-        dataset = pd.read_csv(path)
-        X = dataset.iloc[:,-1].values
-        y = dataset.iloc[:,1].values
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
-        regressor.fit(X_train, y_train)
-        self.int = regressor.intercept_
-        self.coef = regressor.coef_
-
-    #make predictions of FICO score using interest rates
-    #and coefficient/bias from train function.
-    def predict(rate):
-        fico = (rate*self.coef) + self.int
-        return fico
