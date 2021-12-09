@@ -102,6 +102,7 @@ class Estimator:
                 ranges = [int(r) for r in ranges]
                 mean_fico = (ranges[1] + ranges[0]) / 2
                 formated.append({'rate': rate, 'fico': mean_fico})
+                
         #create new csv file with formated data
         with open(self.path + '/LendingClubLoans/Csv/formatedLendingClub2014.csv', mode='w') as file:
             writer = csv.DictWriter(file, fieldnames = ['rate', 'fico'], delimiter = ',')
