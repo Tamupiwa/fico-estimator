@@ -19,16 +19,18 @@ import pandas
 ## Usage
 
 ```python
-import fico-estimator as fe
+from fico-estimator import Estimator
 
+fe = Estimator()
 #get a fico estimate
-fe.predict_fico(rate)
-
-#train using the new data. Returns regression intercept and coeficient (y = mx + b)
-fe.train(data)
+fe.predict(rate)
 
 #get lending club loan data from marketplace
 fe.scrape(html)
+
+#improve the modeling by training it with external data
+fe.train(data)
+
 ```
 
 ## Contributing
