@@ -18,7 +18,7 @@ class Estimator:
         path = os.path.realpath(__file__)
 
     #iterates all the html documents in folder, scrapes each one and combines into one list record
-    def all_data():
+    def all_data(self):
         master_data = []
         directory =  self.path + 'LendingClubLoans/Html'
         for file in os.listdir(directory):
@@ -28,7 +28,7 @@ class Estimator:
         return master_data
 
     ##scrapes the lending club loan market place and scrapes the interest rate and fico score for each loan
-    def scrape(page):
+    def scrape(self, page):
       data = []
       soup = BeautifulSoup(page, 'html.parser')
       #get the div containing all the loans
@@ -43,7 +43,7 @@ class Estimator:
       return formated_data
 
     #formats the rates from latin1 and transaltes fico range to mean
-    def format(data):
+    def format(self, data):
         new_data = []
         for d in data:
             new_d = {'lender': 'lending club', 'prime_rate': self.prime_rate}
@@ -66,7 +66,7 @@ class Estimator:
 
     #same as above but formats csv file
     #path is the path to the csv data file
-    def format_csv(path):
+    def format_csv(self):
         formated = []
         with open(path) as file:
             reader = csv.reader(file, delimiter=',', quotechar='|')
@@ -93,8 +93,8 @@ class Estimator:
 
     #trains the linear regression model using scikit-learn
     #path is the path to the csv data
-    def train(path):
-        dataset = pd.read_csv(path)
+    def train(self):
+        dataset = pd.read_csv(self.path)
         X = dataset.iloc[:,-1].values
         y = dataset.iloc[:,1].values
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
