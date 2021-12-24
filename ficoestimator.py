@@ -104,6 +104,6 @@ class Estimator:
 
     #make predictions of FICO score using interest rates
     #and coefficient/bias from train function.
-    def predict(rate):
+    def predict(self, rate):
         fico = (rate*self.coef) + self.int
         return fico
