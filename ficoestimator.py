@@ -70,7 +70,7 @@ class Estimator:
         formated = []
         with open(path) as file:
             reader = csv.reader(file, delimiter=',', quotechar='|')
-            for i, row in enuemrate(reader):
+            for i, row in enumerate(reader):
                 #skip the header row
                 if i == 0:
                     continue
