@@ -1,12 +1,12 @@
 import requests
 import os
 import csv
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
+from pandas import read_csv
 
 class Estimator:
     #values from pretrained model
@@ -94,7 +94,7 @@ class Estimator:
     #trains the linear regression model using scikit-learn
     #path is the path to the csv data
     def train(self):
-        dataset = pd.read_csv(self.path)
+        dataset = read_csv(self.path)
         X = dataset.iloc[:,-1].values
         y = dataset.iloc[:,1].values
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
